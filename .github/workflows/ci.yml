@@ -1,0 +1,49 @@
+name: CI
+
+# Exercises the migration engine end-to-end on every push / PR:
+#   migrate -> schema-drift check -> seed -> rollback/re-migrate roundtrip.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  migrations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the app image
+        run: docker compose build
+
+      - name: Start PostgreSQL
+        run: docker compose up -d db
+
+      # Function 2: apply every migration to a fresh database.
+      - name: Apply migrations
+        run: docker compose run --rm app db migrate
+
+      # Function 1 used as a guard: regenerate db/schema.rb from the live
+      # database and fail if it differs from the committed snapshot. This is
+      # what `scan` is *for* in CI — it proves the checked-in schema.rb is in
+      # sync with the migrations. If this fails, run `make scan` and commit.
+      - name: Schema is in sync (no drift)
+        run: |
+          docker compose run --rm app db scan
+          git diff --exit-code db/schema.rb \
+            || { echo "::error::db/schema.rb is out of date — run 'make scan' and commit the result."; exit 1; }
+
+      # The seed file must load cleanly against the full schema.
+      - name: Seeds load
+        run: docker compose run --rm app db seed
+
+      # Function 3: prove every migration is reversible by rolling the whole
+      # stack back down and migrating up again.
+      - name: Migrations are reversible (down + up roundtrip)
+        run: |
+          docker compose run --rm app db rollback STEP=8
+          docker compose run --rm app db migrate
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
