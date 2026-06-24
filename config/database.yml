@@ -1,0 +1,12 @@
+# Connection settings, read by lib/boot.rb. Values come from environment
+# variables (set in docker-compose.yml) with sensible local defaults so the
+# CLI also works outside Docker if you have a local PostgreSQL.
+development:
+  adapter: postgresql
+  encoding: unicode
+  host: <%= ENV.fetch("DATABASE_HOST", "localhost") %>
+  port: <%= ENV.fetch("DATABASE_PORT", "5432") %>
+  username: <%= ENV.fetch("DATABASE_USER", "app") %>
+  password: <%= ENV.fetch("DATABASE_PASSWORD", "secret") %>
+  database: <%= ENV.fetch("DATABASE_NAME", "app_development") %>
+  pool: 5
