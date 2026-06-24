@@ -1,0 +1,82 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# `db` — a tiny Rails-like migration CLI built on standalone ActiveRecord.
+#
+#   db setup              First run: migrate + seed in one step
+#   db migrate            Run all pending migrations (optionally VERSION=...)
+#   db rollback           Revert the last migration (optionally STEP=n)
+#   db scan               Dump the live database to db/schema.rb
+#   db seed               Load db/seeds.rb to populate example data
+#   db console            Open an interactive psql session (alias: db psql)
+#   db baseline           Adopt an existing DB: scan + generate a baseline
+#                         migration + stamp it as applied (optionally NAME=...)
+#   db stamp              Mark a migration version as applied without running it
+#                         (VERSION=... required)
+#   db status             Show applied / pending migrations
+#   db version            Show the current schema version
+#   db help               Show this message
+#
+# Tip: log every SQL statement (quiet by default) with `make migrate VERBOSE=1`,
+#      or `docker compose run --rm -e VERBOSE=1 app db migrate`.
+#
+# Examples:
+#   db setup
+#   db migrate
+#   db migrate VERSION=20240101000003
+#   db rollback STEP=2
+#   db console
+#   db baseline                       # one-shot adoption of an existing database
+#   db stamp VERSION=20260625000000
+
+require_relative "../lib/migrator"
+
+Boot.setup!
+
+command = ARGV.shift || "help"
+
+# Allow Rails-style KEY=value arguments (STEP=2, VERSION=...).
+options = ARGV.each_with_object({}) do |arg, h|
+  key, value = arg.split("=", 2)
+  h[key.upcase] = value
+end
+
+case command
+when "migrate"
+  target = options["VERSION"]&.to_i
+  Migrator.migrate(target)
+when "rollback"
+  steps = (options["STEP"] || 1).to_i
+  Migrator.rollback(steps)
+when "scan"
+  Migrator.scan
+when "seed"
+  Migrator.seed
+when "setup"
+  Migrator.setup
+when "console", "psql"
+  Migrator.console
+when "baseline"
+  Migrator.baseline(options["NAME"] || "baseline_schema")
+when "stamp"
+  unless options["VERSION"]
+    warn "Usage: db stamp VERSION=<version>"
+    exit 1
+  end
+  Migrator.stamp(options["VERSION"])
+when "status"
+  Migrator.status
+when "version"
+  Migrator.version
+when "help", "-h", "--help"
+  # Print the leading comment block (skip the shebang + magic comment, stop at
+  # the first line of real code).
+  File.readlines(__FILE__)
+      .drop(2)
+      .take_while { |l| l.start_with?("#") || l.strip.empty? }
+      .each { |l| puts l.sub(/^#( |$)/, "") }
+else
+  warn "Unknown command: #{command}"
+  warn "Run `db help` for usage."
+  exit 1
+end
