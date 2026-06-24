@@ -1,0 +1,59 @@
+# Docker Compose definition for the ActiveRecord migration playground.
+#
+# Two services:
+#   * db   - PostgreSQL 16 with a *named volume* so data survives stop/restart.
+#   * app  - Ruby container that holds the migration code and the `db` CLI.
+#
+# Usage (see README.md for the full walkthrough):
+#   docker compose up -d db          # start the database
+#   docker compose run --rm app db migrate
+#   docker compose run --rm app db scan
+#   docker compose run --rm app db rollback STEP=2
+
+services:
+  db:
+    image: postgres:16
+    container_name: migrations_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: app_development
+    ports:
+      # host:container. Published on 5433 to avoid clashing with a native
+      # PostgreSQL that may already own 5432 on the host. The container still
+      # listens on 5432 internally (that's what the app service connects to).
+      # Override the host port with: DB_HOST_PORT=5544 docker compose up -d db
+      - "${DB_HOST_PORT:-5433}:5432"
+    volumes:
+      # Named volume => the data directory is persisted across `down`/`up`,
+      # `stop`/`start`, and host reboots. Removed only with `docker compose down -v`.
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app_development"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build: .
+    container_name: migrations_app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Consumed by config/database.yml.
+      DATABASE_HOST: db
+      DATABASE_PORT: 5432
+      DATABASE_USER: app
+      DATABASE_PASSWORD: secret
+      DATABASE_NAME: app_development
+    volumes:
+      # Mount the source so edits on the host are visible without rebuilding.
+      - .:/app
+    # Keep the container idle when started with `up`; real work is done via
+    # `docker compose run --rm app db <command>`.
+    command: ["sleep", "infinity"]
+
+volumes:
+  pgdata:
