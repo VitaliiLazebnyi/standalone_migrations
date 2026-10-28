@@ -24,7 +24,9 @@ task :typecheck do
   # Tapioca runs from its own bundle. Under `bundle exec rake` the environment (RUBYOPT=-rbundler/setup,
   # BUNDLE_GEMFILE) belongs to the main bundle, so the nested commands run in an unbundled environment.
   Bundler.with_unbundled_env do
-    sh "env BUNDLE_GEMFILE=typecheck.gemfile bundle install --quiet"
+    # typecheck.gemfile.lock is generated here, so the bundle may not be frozen (setup-ruby's cache
+    # turns on deployment mode for the main bundle).
+    sh "env BUNDLE_GEMFILE=typecheck.gemfile BUNDLE_DEPLOYMENT=false BUNDLE_FROZEN=false bundle install --quiet"
     sh "env BUNDLE_GEMFILE=typecheck.gemfile bundle exec tapioca gem --all"
   end
   # Tapioca already merges the RBIs that gems ship themselves into the generated ones; srb must not load
@@ -71,7 +73,7 @@ task :mutant do
   # Start from the versions of Gemfile.lock, so that mutation testing runs the locked gems.
   cp "Gemfile.lock", "mutant.gemfile.lock"
   Bundler.with_unbundled_env do
-    sh "env BUNDLE_GEMFILE=mutant.gemfile bundle install --quiet"
+    sh "env BUNDLE_GEMFILE=mutant.gemfile BUNDLE_DEPLOYMENT=false BUNDLE_FROZEN=false bundle install --quiet"
     sh "env BUNDLE_GEMFILE=mutant.gemfile bundle exec mutant run"
   end
 end

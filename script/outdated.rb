@@ -74,7 +74,11 @@ def docker_tags(image, pattern)
 end
 
 # --- gems -------------------------------------------------------------------------------------------------
-output, = Open3.capture2e("bundle", "outdated", "--parseable", chdir: ROOT)
+# `bundle outdated` refuses to run in deployment mode, which setup-ruby's bundler-cache turns on.
+output, status = Open3.capture2e({ "BUNDLE_DEPLOYMENT" => "false", "BUNDLE_FROZEN" => "false" },
+                                 "bundle", "outdated", "--parseable", chdir: ROOT)
+# It exits 1 when it finds outdated gems; anything else means it did not run.
+abort "bundle outdated failed:\n#{output}" if status.exitstatus > 1
 outdated = output.scan(/^(\S+) \(newest ([^,\s]+), installed ([^,)\s]+)/)
 outdated.each { |name, newest, installed| report.call("gems", name, installed, newest) }
 (HOLDS.fetch("gems", {}).keys - outdated.map(&:first)).each do |name|
@@ -118,7 +122,9 @@ image_files = [File.join(ROOT, "Dockerfile"), File.join(ROOT, "docker-compose.ym
 images = image_files.flat_map { |path| File.read(path).scan(/\b(ruby|postgres):([\w.-]+)@sha256:[0-9a-f]{64}/) }
 images.uniq!
 images.each do |image, tag|
-  pattern = image == "ruby" ? /\A\d+\.\d+\.\d+-alpine\d+\.\d+\z/ : /\A\d+\.\d+-alpine\d+\.\d+\z/
+  # The app image is Alpine-based. The database server uses the Debian-based image: the Alpine one has no
+  # system locales, and PostgreSQL warns about that on every start.
+  pattern = image == "ruby" ? /\A\d+\.\d+\.\d+-alpine\d+\.\d+\z/ : /\A\d+\.\d+\z/
   report.call("docker", image, tag, docker_tags(image, pattern))
 end
 ruby_tag = images.find { |image, _| image == "ruby" }&.last.to_s

@@ -21,7 +21,7 @@ an **existing/production** database under migration control in one step —
 
 ```text
 ┌──────────────────────────┐         ┌────────────────────────────┐
-│  app  (ruby:4.0.9-alpine) │         │  db  (postgres:18.6-alpine) │
+│  app  (ruby:4.0.9-alpine) │         │  db  (postgres:18.6)        │
 │                           │  TCP    │                             │
 │  • activerecord 8.1.4     │ ──5432─▶│  database: app_development  │
 │  • pg 1.7.0               │         │  user/pass: app / secret    │
@@ -42,7 +42,7 @@ an **existing/production** database under migration control in one step —
 ### Versions (latest as of October 2026)
 
 * Ruby **4.0.9** (`ruby:4.0.9-alpine3.24`, pinned by digest)
-* PostgreSQL **18.6** (`postgres:18.6-alpine3.24`, pinned by digest)
+* PostgreSQL **18.6** (`postgres:18.6`, Debian-based, pinned by digest)
 * activerecord **8.1.4**
 * pg **1.7.0**
 

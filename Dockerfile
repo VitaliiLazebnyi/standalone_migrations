@@ -43,6 +43,15 @@ WORKDIR /app
 ENV BUNDLE_WITHOUT="development:test"
 COPY --from=gems /usr/local/bundle /usr/local/bundle
 
+# The base image ships json 2.18.0 as a default gem, which is affected by
+# CVE-2026-33210 (CRITICAL, fixed in 2.19.2). The bundle carries the newest
+# json (see Gemfile.lock), so the default copy is removed, and the build fails
+# unless `require "json"` now loads a fixed release.
+RUN rm -r /usr/local/lib/ruby/gems/4.0.0/specifications/default/json-*.gemspec \
+          /usr/local/lib/ruby/4.0.0/json /usr/local/lib/ruby/4.0.0/json.rb \
+          /usr/local/lib/ruby/4.0.0/*-linux-musl/json \
+    && ruby -rjson -e 'abort "json #{JSON::VERSION} is vulnerable" if Gem::Version.new(JSON::VERSION) < Gem::Version.new("2.19.2")'
+
 # Copy the rest of the project.
 COPY --chown=app:app . .
 
