@@ -1,0 +1,86 @@
+name: Mutation testing
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RUBYOPT: -W:deprecated -W:performance
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+
+jobs:
+  mutant:
+    name: Mutant
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:18.6-alpine3.24@sha256:10a5c69a83035ab5239f5620d708520e8b28f5aa1f2b20143e6024532edadfb5
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: app_development
+          POSTGRES_INITDB_ARGS: --auth-local=trust --auth-host=scram-sha-256
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U app -d app_development"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_HOST: localhost
+      DATABASE_PORT: 5432
+      DATABASE_USER: app
+      DATABASE_PASSWORD: secret
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+
+    # Mutant parses the code with the `parser` gem (it requires `parser/current`), whose newest release has
+    # no grammar for Ruby 4.0 and warns on any Ruby other than 3.3.13. Mutation testing therefore runs on
+    # Ruby 3.3.13 with mutant.gemfile; `rake mutant` installs that bundle from the versions of Gemfile.lock.
+    - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
+      with:
+        ruby-version: "3.3.13"
+        bundler-cache: false
+    - name: Check the Ruby version
+      run: script/check_ruby.sh 3.3.13
+    - name: Install the bundle
+      run: |
+        cp Gemfile.lock mutant.gemfile.lock
+        BUNDLE_GEMFILE=mutant.gemfile bundle install --jobs 4 --retry 3
+    # Every subject, on every run; any alive mutation fails the build.
+    - name: Mutant (full run)
+      run: BUNDLE_GEMFILE=mutant.gemfile bundle exec mutant run
+
+  warning-gate:
+    name: Warning gate
+    if: ${{ !cancelled() }}
+    needs: [mutant]
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read # reads the logs of the other jobs of this run
+      contents: read
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+
+    - name: Fail on any warning or deprecation in the logs of this run
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GATE_JOB_NAME: Warning gate
+      run: script/warning_gate.sh
