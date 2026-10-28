@@ -31,7 +31,7 @@ without executing the SQL. `db baseline` automates exactly that.
 
 ## The mental model
 
-```
+```text
                          db baseline
                               │
         ┌─────────────────────┼─────────────────────┐
@@ -43,7 +43,7 @@ without executing the SQL. `db baseline` automates exactly that.
 ```
 
 | Where | What the baseline means |
-|-------|-------------------------|
+| --- | --- |
 | **Existing/production DB** | Stamped as applied. Never executed. Tables & data untouched. |
 | **Fresh dev / CI DB** | `db migrate` *runs* the baseline to build the whole schema from zero, then runs any later migrations. |
 

@@ -6,7 +6,7 @@ index is for.
 
 ## Entity-relationship diagram
 
-```
+```text
                          ┌──────────────┐
                          │  categories  │── parent_id ─┐ (self-reference: a
                          │              │◀─────────────┘  category tree)
@@ -36,7 +36,7 @@ index is for.
 ## Tables and relationships
 
 | Table | Key columns | Relationships |
-|-------|-------------|---------------|
+| --- | --- | --- |
 | `users` | `email` (unique) | has_one `profile`; has_many `orders`, `reviews` |
 | `profiles` | `user_id` (unique FK) | belongs_to `user` (**1:1**, `on_delete: cascade`) |
 | `categories` | `slug` (unique), `parent_id` | self-referential tree (`on_delete: nullify`) |
@@ -52,7 +52,7 @@ index is for.
 ## Foreign-key delete behaviour
 
 | Constraint | `on_delete` | Rationale |
-|------------|-------------|-----------|
+| --- | --- | --- |
 | `profiles → users` | `cascade` | profile is meaningless without its user |
 | `categories → categories` | `nullify` | deleting a parent promotes children to top-level |
 | `products → categories` | `restrict` | block deleting a category that still has products |
@@ -66,7 +66,7 @@ index is for.
 ## Index catalogue
 
 | Index | Table | Columns | Type | Purpose |
-|-------|-------|---------|------|---------|
+| --- | --- | --- | --- | --- |
 | `index_users_on_email` | users | email | unique | one account per email |
 | `idx_profiles_on_user_unique` | profiles | user_id | unique | enforce 1:1 |
 | `index_categories_on_slug` | categories | slug | unique | URL slug |
@@ -100,7 +100,7 @@ tables of its own. They are created automatically the first time you run
 seed/row-count helpers.
 
 | Table | Columns | What it is | How the tool uses it |
-|-------|---------|------------|----------------------|
+| --- | --- | --- | --- |
 | `schema_migrations` | `version` (varchar, **PK**) | The **migration ledger** — one row per applied migration, holding its version timestamp (e.g. `20240101000008`). | `db migrate` inserts a row after each migration and skips versions already present; `db rollback` deletes the row when reverting; `db status` diffs this table against `db/migrate/*.rb` to show up/pending; `db stamp` / `db baseline` write here to mark a version applied **without running it**. |
 | `ar_internal_metadata` | `key` (**PK**), `value`, `created_at`, `updated_at` | A small **key/value metadata** store. The main key is `environment` (e.g. `default_env`), which records which environment the database belongs to so Rails can guard against destructive actions against the wrong one. (Some setups also store a `schema_sha1` key.) | Informational guard-rail only — unrelated to domain data. |
 
