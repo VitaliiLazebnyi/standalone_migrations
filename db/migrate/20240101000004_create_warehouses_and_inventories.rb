@@ -1,3 +1,6 @@
+# typed: true
+# frozen_string_literal: true
+
 # Warehouses and per-warehouse stock levels for products.
 #
 # Demonstrates: a join table (inventories) connecting two parents (products and

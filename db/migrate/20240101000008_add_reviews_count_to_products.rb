@@ -1,3 +1,6 @@
+# typed: true
+# frozen_string_literal: true
+
 # Adds a denormalised counter-cache column to products.
 #
 # This migration uses explicit `up`/`down` (instead of `change`) to show how a
