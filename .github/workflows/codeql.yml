@@ -41,6 +41,10 @@ jobs:
     - uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
       with:
         category: "/language:${{ matrix.language }}/suite:${{ matrix.suite }}"
+        # Waiting for GitHub to process the upload only adds a dependency on GitHub's backend latency (when
+        # it is slow, the action warns "Timed out waiting for analysis to finish processing"). The results
+        # are still gated: the "CodeQL" code scanning check reports every alert on the pull request.
+        wait-for-processing: false
 
   warning-gate:
     name: Warning gate
