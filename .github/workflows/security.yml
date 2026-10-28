@@ -1,0 +1,160 @@
+name: Security
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RUBYOPT: -W:deprecated -W:performance
+
+jobs:
+  bundler-audit:
+    name: bundler-audit
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+
+    - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
+      with:
+        ruby-version: .ruby-version
+        rubygems: latest
+        bundler-cache: true
+    - name: Check the Ruby version
+      run: script/check_ruby.sh
+    - run: bundle exec rake audit
+
+  # Requires the repository's Dependency graph to be enabled (Settings > Code security).
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: write # post the dependency review summary on the pull request
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+
+    - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+      with:
+        fail-on-severity: low
+        comment-summary-in-pr: on-failure
+        # OpenSSF Scorecard levels are enforced by the "OpenSSF Scorecard of dependencies" job below instead:
+        # this action only knows one global warning level, for the dependencies a pull request adds, while
+        # `rake scorecard` scores every dependency and allows exceptions one package at a time, each with
+        # its reason (script/scorecard_allowlist.yml).
+        show-openssf-scorecard: false
+
+  scorecard:
+    name: OpenSSF Scorecard of dependencies
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+
+    - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
+      with:
+        ruby-version: .ruby-version
+        rubygems: latest
+        bundler-cache: true
+    - name: Check the Ruby version
+      run: script/check_ruby.sh
+    # Every gem of Gemfile.lock and every Action of the workflows, at or above Scorecard 3 unless allowed.
+    - run: bundle exec rake scorecard
+
+  gitleaks:
+    name: Secret scanning (gitleaks)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        fetch-depth: 0
+        persist-credentials: false
+
+    # The pinned release binary is run directly: the gitleaks action still runs on a deprecated Node.js
+    # version and logs deprecation warnings. The archive is verified against its published SHA-256 first.
+    - name: Install gitleaks
+      env:
+        GITLEAKS_VERSION: 8.30.1
+        GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb # gitleaks_8.30.1_linux_x64.tar.gz
+      run: |
+        archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+        curl --fail --silent --show-error --location --output "$RUNNER_TEMP/$archive" \
+          "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/$archive"
+        echo "$GITLEAKS_SHA256  $RUNNER_TEMP/$archive" | sha256sum --check --strict
+        tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP" gitleaks
+
+    - name: Scan the full history for secrets
+      run: '"$RUNNER_TEMP/gitleaks" git --redact --verbose --exit-code 1 .'
+
+  # The image users run: no HIGH or CRITICAL vulnerability in it, and no misconfiguration in the Dockerfile.
+  trivy:
+    name: Image scan (Trivy)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+
+    # The archive is verified against its published SHA-256 before it is run.
+    - name: Install Trivy
+      env:
+        TRIVY_VERSION: 0.76.1
+        TRIVY_SHA256: c7cbe3137fb8a48a17574bede3dd6beb16742d1e9772929940fc90082c39d9c0 # trivy_0.76.1_Linux-64bit.tar.gz
+      run: |
+        archive="trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+        curl --fail --silent --show-error --location --output "$RUNNER_TEMP/$archive" \
+          "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/$archive"
+        echo "$TRIVY_SHA256  $RUNNER_TEMP/$archive" | sha256sum --check --strict
+        tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP" trivy
+
+    - name: Build the image
+      run: docker build --tag standalone-migrations:scan .
+
+    - name: No HIGH or CRITICAL vulnerability in the image
+      run: '"$RUNNER_TEMP/trivy" image --quiet --severity HIGH,CRITICAL --exit-code 1 standalone-migrations:scan'
+
+    - name: No misconfiguration in the Dockerfile
+      run: '"$RUNNER_TEMP/trivy" config --quiet --exit-code 1 .'
+
+  warning-gate:
+    name: Warning gate
+    if: ${{ !cancelled() }}
+    needs: [bundler-audit, dependency-review, scorecard, gitleaks, trivy]
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read # reads the logs of the other jobs of this run
+      contents: read
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+
+    - name: Fail on any warning or deprecation in the logs of this run
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GATE_JOB_NAME: Warning gate
+      run: script/warning_gate.sh

@@ -1,7 +1,7 @@
 # Docker Compose definition for the ActiveRecord migration playground.
 #
 # Two services:
-#   * db   - PostgreSQL 16 with a *named volume* so data survives stop/restart.
+#   * db   - PostgreSQL 18 with a *named volume* so data survives stop/restart.
 #   * app  - Ruby container that holds the migration code and the `db` CLI.
 #
 # Usage (see README.md for the full walkthrough):
@@ -12,13 +12,17 @@
 
 services:
   db:
-    image: postgres:16
+    # Pinned by digest; Dependabot keeps it current. Debian-based: the Alpine image
+    # has no system locales, which PostgreSQL warns about on every start.
+    image: postgres:18.6@sha256:979bccfde35445db618c65107d27d08c6c21339d8dc3ad4c830c6633947be0e4
     container_name: migrations_db
     restart: unless-stopped
     environment:
       POSTGRES_USER: app
       POSTGRES_PASSWORD: secret
       POSTGRES_DB: app_development
+      # Explicit authentication methods: initdb warns when it has to default them to "trust".
+      POSTGRES_INITDB_ARGS: --auth-local=trust --auth-host=scram-sha-256
     ports:
       # host:container. Published on 5433 to avoid clashing with a native
       # PostgreSQL that may already own 5432 on the host. The container still
@@ -28,7 +32,10 @@ services:
     volumes:
       # Named volume => the data directory is persisted across `down`/`up`,
       # `stop`/`start`, and host reboots. Removed only with `docker compose down -v`.
-      - pgdata:/var/lib/postgresql/data
+      # PostgreSQL 18 images keep a version-specific data directory under
+      # /var/lib/postgresql (here /var/lib/postgresql/18/docker), so the volume is
+      # mounted one level up.
+      - pgdata:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U app -d app_development"]
       interval: 3s
@@ -36,7 +43,12 @@ services:
       retries: 20
 
   app:
-    build: .
+    build:
+      context: .
+      args:
+        # The container user takes these ids (the Makefile passes the host user's).
+        APP_UID: ${APP_UID:-1000}
+        APP_GID: ${APP_GID:-1000}
     container_name: migrations_app
     depends_on:
       db:

@@ -1,0 +1,5 @@
+--markup markdown
+--plugin sorbet
+--exclude vendor/
+--exclude spec/
+lib/**/*.rb

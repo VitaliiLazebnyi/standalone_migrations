@@ -1,3 +1,6 @@
+# typed: true
+# frozen_string_literal: true
+
 # Tags and the many-to-many join between products and tags.
 #
 # Demonstrates: a classic many-to-many join table with a composite primary-key
