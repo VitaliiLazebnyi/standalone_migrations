@@ -55,6 +55,11 @@ jobs:
       with:
         fail-on-severity: low
         comment-summary-in-pr: on-failure
+        # The action warns about any dependency whose OpenSSF Scorecard is below this level (default 3).
+        # ruby-progressbar scores 2.8 (checked 2026-10-28) and is a hard dependency of RuboCop
+        # (`ruby-progressbar ~> 1.7`), which this project cannot do without. The level sits just below it,
+        # so a dependency scoring lower still produces a warning, which the warning gate rejects.
+        warn-on-openssf-scorecard-level: 2
 
   gitleaks:
     name: Secret scanning (gitleaks)
