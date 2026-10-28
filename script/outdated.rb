@@ -7,6 +7,7 @@
 #
 # * gems:            `bundle outdated` of the main bundle
 # * Bundler:         BUNDLED WITH in Gemfile.lock
+# * RubyGems:        `gem update --system` in the Dockerfile, and the RubyGems running the check
 # * Ruby:            .ruby-version (newest stable release) and mutant.gemfile (newest 3.3 release)
 # * Docker images:   the ruby and postgres tags in Dockerfile, docker-compose.yml and the workflows
 # * GitHub Actions:  every `uses: owner/repo@<sha> # <tag>` (newest tag, and the SHA is that tag's commit)
@@ -84,6 +85,15 @@ end
 bundled = File.read(File.join(ROOT, "Gemfile.lock"))[/^BUNDLED WITH\n\s+(\S+)/, 1]
 report.call("bundler", "bundler", bundled, JSON.parse(get("https://rubygems.org/api/v1/versions/bundler/latest.json"))
   .fetch("version"))
+
+# --- RubyGems: the version the Dockerfile installs, and the one running this check ---------------------------
+newest_rubygems = JSON.parse(get("https://rubygems.org/api/v1/versions/rubygems-update/latest.json")).fetch("version")
+pinned_rubygems = File.read(File.join(ROOT, "Dockerfile")).scan(/gem update --system ([\d.]+)/).flatten
+pinned_rubygems.uniq!
+pinned_rubygems.each do |pinned|
+  report.call("rubygems", "Dockerfile", pinned, newest_rubygems)
+end
+report.call("rubygems", "running", Gem::VERSION, newest_rubygems)
 
 # --- Ruby -------------------------------------------------------------------------------------------------
 releases = get("https://cache.ruby-lang.org/pub/ruby/index.txt").scan(/^ruby-(\d+\.\d+\.\d+)\t/).flatten

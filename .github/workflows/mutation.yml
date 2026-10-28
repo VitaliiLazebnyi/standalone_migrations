@@ -55,6 +55,7 @@ jobs:
     - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
       with:
         ruby-version: "3.3.13"
+        rubygems: latest
         bundler-cache: false
     - name: Check the Ruby version
       run: script/check_ruby.sh 3.3.13

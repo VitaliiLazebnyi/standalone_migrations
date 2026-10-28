@@ -53,6 +53,7 @@ jobs:
     - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
       with:
         ruby-version: .ruby-version
+        rubygems: latest
         bundler-cache: true
     - name: Check the Ruby version
       run: script/check_ruby.sh
@@ -73,6 +74,7 @@ jobs:
     - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
       with:
         ruby-version: .ruby-version
+        rubygems: latest
         bundler-cache: true
     - name: Check the Ruby version
       run: script/check_ruby.sh
@@ -93,6 +95,7 @@ jobs:
     - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
       with:
         ruby-version: .ruby-version
+        rubygems: latest
         bundler-cache: true
     - name: Check the Ruby version
       run: script/check_ruby.sh
@@ -111,6 +114,7 @@ jobs:
     - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
       with:
         ruby-version: .ruby-version
+        rubygems: latest
         bundler-cache: true
     - name: Check the Ruby version
       run: script/check_ruby.sh
@@ -129,6 +133,7 @@ jobs:
     - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
       with:
         ruby-version: .ruby-version
+        rubygems: latest
         bundler-cache: true
     - name: Check the Ruby version
       run: script/check_ruby.sh
@@ -149,6 +154,7 @@ jobs:
     - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
       with:
         ruby-version: .ruby-version
+        rubygems: latest
         bundler-cache: true
     - name: Check the Ruby version
       run: script/check_ruby.sh

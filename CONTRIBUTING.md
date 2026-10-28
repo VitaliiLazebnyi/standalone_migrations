@@ -47,7 +47,8 @@ bundle exec rake outdated   # every dependency at its newest release, except the
 bundle exec rake mutant     # mutation testing on Ruby 3.3.13; every mutation must be killed
 ```
 
-`rake outdated` (`script/outdated.rb`) checks the gems, Bundler, Ruby
+`rake outdated` (`script/outdated.rb`) checks the gems, Bundler, RubyGems
+(the CI jobs install the newest with `rubygems: latest`), Ruby
 (`.ruby-version` and the mutation-testing Ruby), the Docker images of
 `Dockerfile`, `docker-compose.yml` and the workflows, every GitHub Action
 (newest tag, and its pinned SHA must be that tag's commit) and every tool a
@@ -55,9 +56,17 @@ workflow installs. A dependency that cannot be updated goes on the hold list,
 `script/outdated_holds.yml`, with the upstream constraint that blocks it; the
 check also fails for a hold that is no longer needed.
 
-Mutant parses the code with the `parser` gem, whose newest grammar is Ruby 3.3:
-on Ruby 4.0, `parser/current` prints a warning. Mutation testing therefore runs
-on Ruby 3.3.13 with `mutant.gemfile` (the main Gemfile with that Ruby). Mutation
+**Hold: mutation testing runs on Ruby 3.3.13, not on `.ruby-version`.** The
+newest mutant (0.17.1, and its `main` branch as of 2026-10-28) requires
+`parser/current` (`ruby/lib/mutant.rb`) and depends on `parser ~> 3.3.10`;
+unparser 0.9.0 requires it too. The newest parser (3.3.13.0) has no grammar
+past Ruby 3.3, and its `lib/parser/current.rb` prints
+`warning: parser/current is loading parser/ruby33, ... but you are running 4.0.9`
+for any other Ruby. Running mutant on Ruby 4.0 would therefore mean silencing a
+warning, which this repository forbids. Mutation testing runs on Ruby 3.3.13
+with `mutant.gemfile` (the main Gemfile with that Ruby, installed from the
+versions of `Gemfile.lock`); `rake outdated` keeps that Ruby the newest 3.3
+release. Mutation
 runs are slow; while iterating, run one subject at a time, e.g.
 `BUNDLE_GEMFILE=mutant.gemfile bundle exec mutant run 'Migrator::Status*'`.
 
