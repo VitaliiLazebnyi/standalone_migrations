@@ -1,0 +1,13 @@
+# Dependencies whose OpenSSF Scorecard (https://scorecard.dev) is below the threshold of script/scorecard.rb
+# but which this project cannot drop or replace. Each entry names the score it was reviewed at and why the
+# dependency stays. `rake scorecard` fails for any other low-scoring dependency, for an entry whose
+# dependency now scores at or above the threshold, and for an entry the bundle no longer contains.
+gems:
+  ruby-progressbar:
+    reviewed_score: 2.8
+    reviewed_on: 2026-10-28
+    reason: >-
+      A hard runtime dependency of RuboCop (rubocop 1.92.1: ruby-progressbar ~> 1.7), which renders
+      RuboCop's progress output. RuboCop cannot be installed without it, and no other linter covers what
+      RuboCop and its plugins check. It is a development-only dependency and is not in the Docker image.
+actions: {}

@@ -65,6 +65,11 @@ task :outdated do
   ruby "script/outdated.rb"
 end
 
+desc "Fail on dependencies below the OpenSSF Scorecard threshold that are not on the allowlist"
+task :scorecard do
+  ruby "script/scorecard.rb"
+end
+
 desc "Run mutation testing on Ruby #{MUTANT_RUBY}; every mutation must be killed (see .mutant.yml)"
 task :mutant do
   abort "Mutation testing runs on Ruby #{MUTANT_RUBY} (see mutant.gemfile), not #{RUBY_VERSION}" \

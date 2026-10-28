@@ -70,7 +70,8 @@ def newest_tag(tags) = tags.keys.max_by { |tag| version(tag) }
 def docker_tags(image, pattern)
   url = "https://hub.docker.com/v2/repositories/library/#{image}/tags?page_size=100&ordering=last_updated"
   names = JSON.parse(get(url)).fetch("results").map { |tag| tag.fetch("name") }
-  names.grep(pattern).max_by { |name| version(name[/\A[\d.]+/]) }
+  # Compare the image version first, then the version of the base it is built on (e.g. alpine3.24).
+  names.grep(pattern).max_by { |name| name.scan(/\d+(?:\.\d+)*/).map { |number| version(number) } }
 end
 
 # --- gems -------------------------------------------------------------------------------------------------

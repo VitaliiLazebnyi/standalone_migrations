@@ -55,11 +55,31 @@ jobs:
       with:
         fail-on-severity: low
         comment-summary-in-pr: on-failure
-        # The action warns about any dependency whose OpenSSF Scorecard is below this level (default 3).
-        # ruby-progressbar scores 2.8 (checked 2026-10-28) and is a hard dependency of RuboCop
-        # (`ruby-progressbar ~> 1.7`), which this project cannot do without. The level sits just below it,
-        # so a dependency scoring lower still produces a warning, which the warning gate rejects.
-        warn-on-openssf-scorecard-level: 2
+        # OpenSSF Scorecard levels are enforced by the "OpenSSF Scorecard of dependencies" job below instead:
+        # this action only knows one global warning level, for the dependencies a pull request adds, while
+        # `rake scorecard` scores every dependency and allows exceptions one package at a time, each with
+        # its reason (script/scorecard_allowlist.yml).
+        show-openssf-scorecard: false
+
+  scorecard:
+    name: OpenSSF Scorecard of dependencies
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+
+    - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
+      with:
+        ruby-version: .ruby-version
+        rubygems: latest
+        bundler-cache: true
+    - name: Check the Ruby version
+      run: script/check_ruby.sh
+    # Every gem of Gemfile.lock and every Action of the workflows, at or above Scorecard 3 unless allowed.
+    - run: bundle exec rake scorecard
 
   gitleaks:
     name: Secret scanning (gitleaks)
@@ -123,7 +143,7 @@ jobs:
   warning-gate:
     name: Warning gate
     if: ${{ !cancelled() }}
-    needs: [bundler-audit, dependency-review, gitleaks, trivy]
+    needs: [bundler-audit, dependency-review, scorecard, gitleaks, trivy]
     runs-on: ubuntu-24.04
     permissions:
       actions: read # reads the logs of the other jobs of this run

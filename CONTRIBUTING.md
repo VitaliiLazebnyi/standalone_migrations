@@ -44,6 +44,7 @@ Not part of the default task, but also enforced in CI:
 
 ```bash
 bundle exec rake outdated   # every dependency at its newest release, except the documented holds
+bundle exec rake scorecard  # every dependency at OpenSSF Scorecard 3 or above, except the allowlist
 bundle exec rake mutant     # mutation testing on Ruby 3.3.13; every mutation must be killed
 ```
 
@@ -55,6 +56,16 @@ bundle exec rake mutant     # mutation testing on Ruby 3.3.13; every mutation mu
 workflow installs. A dependency that cannot be updated goes on the hold list,
 `script/outdated_holds.yml`, with the upstream constraint that blocks it; the
 check also fails for a hold that is no longer needed.
+
+`rake scorecard` (`script/scorecard.rb`) looks up the source repository of
+every gem in `Gemfile.lock` and of every GitHub Action the workflows use, and
+fails when its [OpenSSF Scorecard](https://scorecard.dev) is below 3. A
+dependency that scores lower but cannot be dropped or replaced is allowed one
+package at a time in `script/scorecard_allowlist.yml`, with the score it was
+reviewed at and the reason it stays; the check also fails for an allowance
+that is no longer needed. (The dependency review action only knows one global
+warning level, so its own Scorecard warnings are turned off in favour of this
+check.)
 
 **Hold: mutation testing runs on Ruby 3.3.13, not on `.ruby-version`.** The
 newest mutant (0.17.1, and its `main` branch as of 2026-10-28) requires
