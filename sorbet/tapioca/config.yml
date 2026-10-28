@@ -1,0 +1,20 @@
+gem:
+  # Reek and the dry-rb gems it depends on are development tools that no checked file refers to. Compiling
+  # their RBIs touches constants that dry-rb has deprecated, which prints deprecation notices.
+  exclude:
+  - dry-configurable
+  - dry-core
+  - dry-inflector
+  - dry-initializer
+  - dry-logic
+  - dry-schema
+  - dry-types
+  - reek
+  # doc: true
+  # workers: 5
+dsl:
+  # Add your `dsl` command parameters here:
+  #
+  # exclude:
+  # - SomeGeneratorName
+  # workers: 5
