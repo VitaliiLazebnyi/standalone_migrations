@@ -5,14 +5,14 @@
 # stages use the same base, pinned by digest (Dependabot keeps it current).
 
 # --- gems: compile the native extensions (bigdecimal, json) -------------------
-FROM ruby:4.0.9-alpine3.24@sha256:d0c5befc0864d31c6219321c8d79de2941d1bc31c41505d9c9289c6192c36d60 AS gems
+FROM ruby:4.0.9-alpine3.24@sha256:8ad6909db16ad53b5dc90bb8cc157e5fdd89ba1172798316b95cfd2a61f14b1e AS gems
 
 # A C toolchain for the gems with native extensions (the pg gem ships
 # precompiled, with its own libpq, so no libpq-dev is needed), and the newest
 # RubyGems and Bundler (the version Gemfile.lock was bundled with): the image
 # ships older ones.
 RUN apk add --no-cache "build-base~0.5" \
-    && gem update --system 4.0.23 --no-document
+    && gem update --system 4.0.24 --no-document
 
 WORKDIR /app
 
@@ -24,12 +24,12 @@ RUN bundle install --jobs 4 --retry 3 \
     && rm -rf /usr/local/bundle/cache
 
 # --- runtime ----------------------------------------------------------------
-FROM ruby:4.0.9-alpine3.24@sha256:d0c5befc0864d31c6219321c8d79de2941d1bc31c41505d9c9289c6192c36d60
+FROM ruby:4.0.9-alpine3.24@sha256:8ad6909db16ad53b5dc90bb8cc157e5fdd89ba1172798316b95cfd2a61f14b1e
 
 # psql (`db console`) and pg_isready (bin/entrypoint.sh), matching the
 # PostgreSQL 18 server of docker-compose.yml.
 RUN apk add --no-cache "postgresql18-client~18" \
-    && gem update --system 4.0.23 --no-document
+    && gem update --system 4.0.24 --no-document
 
 # Run as an unprivileged user. Its uid/gid default to 1000 and can be set to
 # the host user's (the Makefile does), so that files written to the bind mount

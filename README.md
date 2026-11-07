@@ -23,7 +23,7 @@ an **existing/production** database under migration control in one step —
 ┌──────────────────────────┐         ┌────────────────────────────┐
 │  app  (ruby:4.0.9-alpine) │         │  db  (postgres:18.6)        │
 │                           │  TCP    │                             │
-│  • activerecord 8.1.4     │ ──5432─▶│  database: app_development  │
+│  • activerecord 8.1.4.1   │ ──5432─▶│  database: app_development  │
 │  • pg 1.7.0               │         │  user/pass: app / secret    │
 │  • bin/db CLI             │         │                             │
 │  • db/migrate/*.rb        │         │  volume: pgdata ───────────┐│
@@ -43,7 +43,7 @@ an **existing/production** database under migration control in one step —
 
 * Ruby **4.0.9** (`ruby:4.0.9-alpine3.24`, pinned by digest)
 * PostgreSQL **18.6** (`postgres:18.6`, Debian-based, pinned by digest)
-* activerecord **8.1.4**
+* activerecord **8.1.4.1**
 * pg **1.7.0**
 
 Exact gem versions are pinned in the committed **`Gemfile.lock`**, so every

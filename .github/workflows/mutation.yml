@@ -26,7 +26,7 @@ jobs:
       contents: read
     services:
       postgres:
-        image: postgres:18.6@sha256:979bccfde35445db618c65107d27d08c6c21339d8dc3ad4c830c6633947be0e4
+        image: postgres:18.6@sha256:e3d24f6906d0760bf4da0dae872415391ededefad23fd471c47dc53b0ddf3c42
         env:
           POSTGRES_USER: app
           POSTGRES_PASSWORD: secret
@@ -52,7 +52,7 @@ jobs:
     # Mutant parses the code with the `parser` gem (it requires `parser/current`), whose newest release has
     # no grammar for Ruby 4.0 and warns on any Ruby other than 3.3.13. Mutation testing therefore runs on
     # Ruby 3.3.13 with mutant.gemfile; `rake mutant` installs that bundle from the versions of Gemfile.lock.
-    - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
+    - uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
       with:
         ruby-version: "3.3.13"
         rubygems: latest
@@ -61,7 +61,7 @@ jobs:
       run: script/check_ruby.sh 3.3.13
     # Installing the gems runs RubyGems, not this project: on Ruby 3.3 a fresh install makes
     # Gem::Specification exceed Ruby's shape limit, which the opt-in `-W:performance` category reports
-    # (RubyGems 4.0.23, the newest; Ruby 4.0 does not report it). The install step therefore runs with the
+    # (RubyGems 4.0.24, the newest; Ruby 4.0 does not report it). The install step therefore runs with the
     # default warning categories plus deprecations; the mutation run below enables performance warnings.
     - name: Install the bundle
       run: |
