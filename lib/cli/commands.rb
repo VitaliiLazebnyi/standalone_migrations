@@ -21,7 +21,7 @@ module CLI
       # @param options [Hash{String => String, nil}]
       # @return [Integer] the exit status
       # @raise [Migrator::InvalidInput] when VERSION is not a migration version
-      sig { params(options: Options).returns(Integer) }
+      sig { params(options: T::Hash[String, T.nilable(String)]).returns(Integer) }
       def migrate(options)
         version = options["VERSION"]
         Migrator.migrate(version && Integer(Migrator::Input.migration_version(version), 10))
@@ -33,11 +33,11 @@ module CLI
       # @param options [Hash{String => String, nil}]
       # @return [Integer] the exit status
       # @raise [Migrator::InvalidInput] when STEP is not a positive integer
-      sig { params(options: Options).returns(Integer) }
+      sig { params(options: T::Hash[String, T.nilable(String)]).returns(Integer) }
       def rollback(options)
         steps = options.fetch("STEP", "1").to_s
         unless STEP_FORMAT.match?(steps)
-          raise Migrator::InvalidInput, "STEP must be a positive integer, got #{steps.inspect}"
+          raise(Migrator::InvalidInput, "STEP must be a positive integer, got #{steps.inspect}")
         end
 
         Migrator.rollback(Integer(steps))
@@ -49,10 +49,10 @@ module CLI
       # @param options [Hash{String => String, nil}]
       # @return [Integer] the exit status
       # @raise [Migrator::InvalidInput] when VERSION is missing or not a migration version
-      sig { params(options: Options).returns(Integer) }
+      sig { params(options: T::Hash[String, T.nilable(String)]).returns(Integer) }
       def stamp(options)
         version = options["VERSION"]
-        raise Migrator::InvalidInput, "Usage: db stamp VERSION=<version>" unless version
+        raise(Migrator::InvalidInput, "Usage: db stamp VERSION=<version>") unless version
 
         Migrator.stamp(version)
         0
@@ -63,7 +63,7 @@ module CLI
       # @param options [Hash{String => String, nil}]
       # @return [Integer] the exit status
       # @raise [Migrator::InvalidInput] when NAME is not a loadable migration name
-      sig { params(options: Options).returns(Integer) }
+      sig { params(options: T::Hash[String, T.nilable(String)]).returns(Integer) }
       def baseline(options)
         Migrator.baseline(options["NAME"] || "baseline_schema")
         0
@@ -73,7 +73,7 @@ module CLI
       #
       # @param _options [Hash{String => String, nil}] ignored
       # @return [Integer] the exit status
-      sig { params(_options: Options).returns(Integer) }
+      sig { params(_options: T::Hash[String, T.nilable(String)]).returns(Integer) }
       def help(_options)
         $stdout.write(USAGE)
         0
@@ -83,7 +83,7 @@ module CLI
       #
       # @param _options [Hash{String => String, nil}] ignored
       # @return [Integer] the exit status
-      sig { params(_options: Options).returns(Integer) }
+      sig { params(_options: T::Hash[String, T.nilable(String)]).returns(Integer) }
       def scan(_options)
         Migrator.scan
         0
@@ -93,7 +93,7 @@ module CLI
       #
       # @param _options [Hash{String => String, nil}] ignored
       # @return [Integer] the exit status
-      sig { params(_options: Options).returns(Integer) }
+      sig { params(_options: T::Hash[String, T.nilable(String)]).returns(Integer) }
       def seed(_options)
         Migrator.seed
         0
@@ -103,7 +103,7 @@ module CLI
       #
       # @param _options [Hash{String => String, nil}] ignored
       # @return [Integer] the exit status
-      sig { params(_options: Options).returns(Integer) }
+      sig { params(_options: T::Hash[String, T.nilable(String)]).returns(Integer) }
       def setup(_options)
         Migrator.setup
         0
@@ -113,7 +113,7 @@ module CLI
       #
       # @param _options [Hash{String => String, nil}] ignored
       # @return [Integer] never returns
-      sig { params(_options: Options).returns(T.noreturn) }
+      sig { params(_options: T::Hash[String, T.nilable(String)]).returns(T.noreturn) }
       def console(_options)
         Migrator.console
       end
@@ -122,7 +122,7 @@ module CLI
       #
       # @param _options [Hash{String => String, nil}] ignored
       # @return [Integer] the exit status
-      sig { params(_options: Options).returns(Integer) }
+      sig { params(_options: T::Hash[String, T.nilable(String)]).returns(Integer) }
       def status(_options)
         Migrator.status
         0
@@ -132,7 +132,7 @@ module CLI
       #
       # @param _options [Hash{String => String, nil}] ignored
       # @return [Integer] the exit status
-      sig { params(_options: Options).returns(Integer) }
+      sig { params(_options: T::Hash[String, T.nilable(String)]).returns(Integer) }
       def version(_options)
         Migrator.version
         0

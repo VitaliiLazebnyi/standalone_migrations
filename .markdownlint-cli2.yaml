@@ -1,3 +1,4 @@
+---
 # markdownlint (markdownlint-cli2) configuration. Every rule is on; the settings below adapt two of them.
 config:
   default: true
@@ -10,7 +11,7 @@ config:
   MD060:
     style: compact
 ignores:
-  - "vendor/**"
-  - "coverage/**"
-  - "doc/**"
-  - "tmp/**"
+  - vendor/**
+  - coverage/**
+  - doc/**
+  - tmp/**

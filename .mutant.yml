@@ -1,3 +1,4 @@
+---
 usage: opensource
 integration:
   name: rspec

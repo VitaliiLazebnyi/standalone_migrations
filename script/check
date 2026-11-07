@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+# Runs the checks of CI locally. `script/check` runs all of them; `script/check <check>...` runs the named
+# ones (`script/check --list` lists them). The CI jobs call this script for the checks they run, so a check
+# passes here exactly when it passes there.
+#
+# The tools are the ones CI pins (see .github/workflows); install them on PATH first. The Ruby checks run on
+# the Ruby of .ruby-version, against the PostgreSQL server that DATABASE_HOST/DATABASE_PORT name (see
+# CONTRIBUTING.md); mutation testing runs on the Ruby of mutant.gemfile, which MUTANT_RUBY_BIN may point at
+# (the directory holding its `ruby`).
+#
+# Three checks exist only in CI: the dependency review of a pull request's changes, CodeQL, and the warning
+# gate, which reads the logs of the CI jobs.
+set -euo pipefail
+
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+# The shell scripts of the repository.
+shell_scripts=(script/check script/*.sh bin/entrypoint.sh .githooks/pre-commit)
+
+rake() {
+  bundle exec rake "$@"
+}
+
+check_ruby() {
+  rake spec rubocop suppressions typecheck yard reek flay flog audit
+}
+
+check_mutant() {
+  local ruby_version
+  ruby_version=$(sed -n 's/^ruby "\([0-9.]*\)"$/\1/p' mutant.gemfile)
+  if [[ -n ${MUTANT_RUBY_BIN:-} ]]; then
+    PATH="${MUTANT_RUBY_BIN}:${PATH}"
+  fi
+  script/check_ruby.sh "${ruby_version}"
+  # Start from the versions of Gemfile.lock, so that mutation testing runs the locked gems.
+  cp Gemfile.lock mutant.gemfile.lock
+  BUNDLE_GEMFILE=mutant.gemfile BUNDLE_DEPLOYMENT=false BUNDLE_FROZEN=false bundle install --jobs 4 --retry 3
+  BUNDLE_GEMFILE=mutant.gemfile bundle exec mutant run
+}
+
+check_outdated() {
+  rake outdated
+}
+
+check_scorecard() {
+  rake scorecard
+}
+
+check_actionlint() {
+  actionlint -color
+}
+
+check_zizmor() {
+  zizmor --persona pedantic --no-progress .
+}
+
+check_shellcheck() {
+  shellcheck --enable=all --severity=style "${shell_scripts[@]}"
+}
+
+check_shfmt() {
+  shfmt --diff --simplify --indent 2 --case-indent --binary-next-line "${shell_scripts[@]}"
+}
+
+check_yamllint() {
+  yamllint --strict .
+}
+
+check_editorconfig() {
+  editorconfig-checker
+}
+
+check_hadolint() {
+  hadolint --failure-threshold style Dockerfile
+}
+
+check_checkmake() {
+  checkmake Makefile
+}
+
+check_markdownlint() {
+  markdownlint-cli2 '**/*.md'
+}
+
+check_typos() {
+  typos
+}
+
+check_gitleaks() {
+  gitleaks git --redact --verbose --exit-code 1 .
+}
+
+check_trivy() {
+  docker build --tag standalone-migrations:scan .
+  trivy image --quiet --severity HIGH,CRITICAL --exit-code 1 standalone-migrations:scan
+  trivy config --quiet --exit-code 1 .
+}
+
+check_end_to_end() {
+  script/end_to_end.sh
+}
+
+checks=(ruby mutant outdated scorecard actionlint zizmor shellcheck shfmt yamllint editorconfig hadolint checkmake
+  markdownlint typos gitleaks trivy end_to_end)
+
+if [[ ${1:-} == "--list" ]]; then
+  printf '%s\n' "${checks[@]}"
+  exit 0
+fi
+
+selected=("$@")
+if [[ ${#selected[@]} -eq 0 ]]; then
+  selected=("${checks[@]}")
+fi
+
+for check in "${selected[@]}"; do
+  if ! declare -F "check_${check//-/_}" >/dev/null; then
+    printf 'Unknown check: %s (script/check --list lists them)\n' "${check}" >&2
+    exit 2
+  fi
+done
+
+for check in "${selected[@]}"; do
+  printf '==> %s\n' "${check}"
+  "check_${check//-/_}"
+done
+printf 'All checks passed: %s\n' "${selected[*]}"

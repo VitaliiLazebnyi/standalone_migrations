@@ -1,0 +1,20 @@
+# Formatting every editor and editorconfig-checker apply (`script/check editorconfig`).
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+# Ruby and Markdown: RuboCop (also on the Ruby blocks of the Markdown files) and markdownlint enforce the
+# indentation, which also holds alignment (method chains, arguments, list continuations) and literal text
+# (heredocs of expected output, code blocks of program output) that is not a multiple of the indent size.
+[*.{rb,md}]
+indent_size = unset
+
+# Make requires a tab before each recipe line.
+[Makefile]
+indent_style = tab

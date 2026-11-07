@@ -29,18 +29,18 @@ RUN = docker compose run --rm $(if $(VERBOSE),-e VERBOSE=1,) app db
 
 define HELP_TEXT
 
-  setup            migrate + seed (first run)
-  migrate          apply pending migrations   (VERSION=... optional)
-  rollback         revert migrations          (STEP=n, default 1)
-  seed             (re)load example data
-  scan             dump schema -> db/schema.rb
-  status / version show migration state
-  console          interactive psql session
-  up / down        start / stop the database (keeps data)
-  reset            WIPE the data volume, then migrate + seed
-  build / logs     rebuild image / follow db logs
-  test             run the verification suite on the host (see CONTRIBUTING.md)
-  clean            remove generated reports (coverage, docs, mutation results)
+	setup            migrate + seed (first run)
+	migrate          apply pending migrations   (VERSION=... optional)
+	rollback         revert migrations          (STEP=n, default 1)
+	seed             (re)load example data
+	scan             dump schema -> db/schema.rb
+	status / version show migration state
+	console          interactive psql session
+	up / down        start / stop the database (keeps data)
+	reset            WIPE the data volume, then migrate + seed
+	build / logs     rebuild image / follow db logs
+	test             run the verification suite on the host (see CONTRIBUTING.md)
+	clean            remove generated reports (coverage, docs, mutation results)
 
 Add VERBOSE=1 to log every SQL statement.
 endef
@@ -72,7 +72,7 @@ logs:  ; docker compose logs -f db
 # the bind mount), keeping the linux build platforms. Run `make build` after.
 lock:
 	docker compose run --rm app sh -c \
-	  "bundle lock && bundle lock --add-platform x86_64-linux aarch64-linux"
+		"bundle lock && bundle lock --add-platform x86_64-linux aarch64-linux"
 
 # Destroy the database volume and rebuild from scratch (migrate + seed).
 reset:

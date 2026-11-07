@@ -22,38 +22,60 @@ next to the maintenance database `postgres`.
 
 ## Before opening a pull request
 
-Run the verification suite. Every gate is enforced in CI and fails the build:
+Run the checks. Every one is enforced in CI and fails the build;
+`script/check` runs all of them locally, and `script/check <check>...` the
+named ones (`script/check --list` lists them). The CI jobs call the same
+script, so a check passes locally exactly when it passes in CI:
 
 ```bash
-bundle exec rake
+script/check                  # everything
+script/check ruby shellcheck  # the Ruby gates and ShellCheck only
 ```
 
-That runs, in order:
+The `ruby` check is `bundle exec rake`, which runs, in order:
 
 | Task | Gate |
 | --- | --- |
-| `rake spec` | RSpec against PostgreSQL; 100% line **and** branch coverage of `lib/`, no pending, skipped or focused examples, no Ruby warning from `bin/`, `db/`, `lib/` or `spec/` (and no third-party warning in the CI log) |
-| `rake rubocop` | RuboCop with rubocop-md, -performance, -rails, -rake, -rspec, -sorbet and -thread_safety (`.rubocop.yml`); no todo file |
+| `rake spec` | RSpec against PostgreSQL under `ruby -w`; 100% line **and** branch coverage of `lib/`, no pending, skipped or focused examples, no Ruby warning from `bin/`, `db/`, `lib/` or `spec/` (and no third-party warning in the CI log) |
+| `rake rubocop` | RuboCop with every cop enabled (`EnabledByDefault`), and the rubocop-md, -performance, -rails, -rake, -rspec, -sorbet and -thread_safety plugins (`.rubocop.yml` lists each cop that stays off, with the reason); no todo file |
 | `rake suppressions` | no inline suppression anywhere (`script/forbidden_suppressions.sh`, see below) |
-| `rake typecheck` | Tapioca generates the gem RBIs (from `typecheck.gemfile`), then `srb tc` must report no errors; `lib/` and `bin/` are `typed: strict`, `db/` is `typed: true` |
-| `rake yard` | YARD must report 100% documented, without warnings |
-| `rake reek` / `rake flay` | no code smell (default Reek configuration) and no structural duplication (Flay's default mass) in `lib/` and `bin/` |
+| `rake typecheck` | Tapioca generates the gem RBIs (from `typecheck.gemfile`), then `srb tc` must report no errors; every file but the RSpec examples and `spec_helper.rb` is `typed: strict` (the Rakefile and `bin/db` included) |
+| `rake yard` | `yardoc --fail-on-warning`, and YARD must report 100% documented, private and protected objects included, for `lib/` and `script/` |
+| `rake reek` / `rake flay` / `rake flog` | no code smell (default Reek configuration), no structural duplication (Flay's default mass) and no method scoring above 20 with Flog, in `lib/`, `bin/` and `script/` |
 | `rake audit` | bundler-audit: no dependency with a known vulnerability |
 
-Not part of the default task, but also enforced in CI:
+The other checks:
 
-```bash
-bundle exec rake outdated   # every dependency at its newest release, except the documented holds
-bundle exec rake scorecard  # every dependency at OpenSSF Scorecard 3 or above, except the allowlist
-bundle exec rake mutant     # mutation testing on Ruby 3.3.13; every mutation must be killed
-```
+| Check | Gate |
+| --- | --- |
+| `mutant` | mutation testing on Ruby 3.3.13 (see the hold below); every mutation must be killed. Set `MUTANT_RUBY_BIN` to the directory of that Ruby when it is not first on `PATH` |
+| `outdated` | every dependency at its newest release, except the documented holds |
+| `scorecard` | every dependency at OpenSSF Scorecard 3 or above, except the allowlist |
+| `actionlint` | the workflows (actionlint also runs ShellCheck on every `run:` script) |
+| `zizmor` | workflow security, pedantic persona |
+| `shellcheck` | the shell scripts, every optional check (`.shellcheckrc`) at `--severity=style` |
+| `shfmt` | the shell scripts are formatted (`-s -i 2 -ci -bn`) |
+| `yamllint` | every YAML file, `--strict`, every rule but key-ordering (`.yamllint.yml`) |
+| `editorconfig` | every file follows `.editorconfig` |
+| `hadolint` | the Dockerfile, failing on any finding down to `style` |
+| `checkmake` | the Makefile |
+| `markdownlint` | every Markdown file, every rule (`.markdownlint-cli2.yaml`) |
+| `typos` | spelling |
+| `gitleaks` | no secret in the full history |
+| `trivy` | no HIGH or CRITICAL vulnerability in the built image, no misconfiguration |
+| `end-to-end` | the Docker image and docker compose, as a user runs them (`script/end_to_end.sh`) |
+
+The tools are the versions CI pins (see `.github/workflows`). Three checks run
+only in CI: the dependency review of a pull request's changes (any severity,
+any scope), CodeQL, and the warning gates, which read the CI logs.
 
 `rake outdated` (`script/outdated.rb`) checks the gems, Bundler, RubyGems
 (the CI jobs install the newest with `rubygems: latest`), Ruby
 (`.ruby-version` and the mutation-testing Ruby), the Docker images of
 `Dockerfile`, `docker-compose.yml` and the workflows, every GitHub Action
-(newest tag, and its pinned SHA must be that tag's commit) and every tool a
-workflow installs. A dependency that cannot be updated goes on the hold list,
+(newest tag, and its pinned SHA must be that tag's commit), every tool a
+workflow installs and the Python packages of `.github/requirements`. A
+dependency that cannot be updated goes on the hold list,
 `script/outdated_holds.yml`, with the upstream constraint that blocks it; the
 check also fails for a hold that is no longer needed.
 
@@ -77,37 +99,34 @@ for any other Ruby. Running mutant on Ruby 4.0 would therefore mean silencing a
 warning, which this repository forbids. Mutation testing runs on Ruby 3.3.13
 with `mutant.gemfile` (the main Gemfile with that Ruby, installed from the
 versions of `Gemfile.lock`); `rake outdated` keeps that Ruby the newest 3.3
-release. Mutation
-runs are slow; while iterating, run one subject at a time, e.g.
-`BUNDLE_GEMFILE=mutant.gemfile bundle exec mutant run 'Migrator::Status*'`.
+release. Mutation runs are slow; while iterating, run one subject at a time,
+e.g. `BUNDLE_GEMFILE=mutant.gemfile bundle exec mutant run 'Migrator::Status*'`.
 
-The other linters run in the "Repository lint" workflow; locally:
-
-```bash
-actionlint                                                  # the workflows
-zizmor --persona pedantic .github/workflows                 # workflow security
-shellcheck script/*.sh .githooks/pre-commit bin/entrypoint.sh
-hadolint Dockerfile
-checkmake Makefile
-markdownlint-cli2 "**/*.md"                                 # .markdownlint-cli2.yaml
-typos
-gitleaks git --redact .                                     # secret scanning, full history
-docker build -t standalone-migrations . && trivy image --severity HIGH,CRITICAL --exit-code 1 standalone-migrations
-```
+**Hold: `-w` is off for four third-party tools.** Every Ruby command in CI
+runs with `RUBYOPT=-w -W:deprecated -W:performance`, except RuboCop, Tapioca,
+YARD and bundler-audit, whose own code warns under `-w` (kramdown's
+`parser/base.rb`, Tapioca's redefined `exit`/`abort`, YARD's `yardoc.rb` and
+`hybrid_markdown.rb`, bundler-audit's redefined `say_error`): those jobs run
+with `-W:deprecated -W:performance` only, and the warning gate still rejects
+any warning they print. Installing gems (setup-ruby, the mutation bundle)
+drops `-w` and `-W:performance` for the same reason (RubyGems'
+`specification.rb`).
 
 ## Rules
 
 - **No inline suppressions.** Nothing may silence a linter, scanner, type
   checker, warning or test in place: no `rubocop:disable`, `:nocov:`, `:reek:`,
   `mutant:disable`, `gitleaks:allow`, `nosec`, `hadolint ignore`,
-  `shellcheck disable`, `markdownlint-disable`, `trivy:ignore`,
-  `T.unsafe`/`T.cast`/`T.bind`/`T.untyped` in `lib/` or `bin/`,
+  `shellcheck disable`, `yamllint disable`, `markdownlint-disable`,
+  `trivy:ignore`, `T.unsafe`/`T.cast`/`T.bind`/`T.untyped` in any
+  `typed: strict` file,
   `$VERBOSE = nil`, `skip`/`pending`/`focus`, and so on, and no file that only
   holds exceptions (`.rubocop_todo.yml`, `.trivyignore`, `.gitleaksignore`,
   ...). Fix the cause. A rule that cannot apply to a file is configured
   narrowly in the tool's configuration file, with the reason written next to
-  it (see `.rubocop.yml` and `.markdownlint-cli2.yaml`).
-- **No warnings.** Every workflow ends with a "Warning gate" job
+  it (see `.rubocop.yml`, `.yamllint.yml`, `.editorconfig` and
+  `.markdownlint-cli2.yaml`).
+- **No warnings.** Every workflow ends with a warning gate job
   (`script/warning_gate.sh`) that fails the run when the log of any job
   contains a warning or a deprecation notice.
 - **Behavior is specified.** Every behavioral fix needs a regression spec, and

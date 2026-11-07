@@ -29,7 +29,7 @@ module Migrator
       def migration_version(version)
         text = version.to_s.strip
         unless VERSION_FORMAT.match?(text)
-          raise InvalidInput, "VERSION must be a migration version (digits only), got #{text.inspect}"
+          raise(InvalidInput, "VERSION must be a migration version (digits only), got #{text.inspect}")
         end
 
         text.delete("_")
@@ -43,7 +43,7 @@ module Migrator
       sig { params(name: String).returns(String) }
       def migration_name(name)
         unless NAME_FORMAT.match?(name)
-          raise InvalidInput, "NAME must be lower case letters, digits and underscores, got #{name.inspect}"
+          raise(InvalidInput, "NAME must be lower case letters, digits and underscores, got #{name.inspect}")
         end
 
         name

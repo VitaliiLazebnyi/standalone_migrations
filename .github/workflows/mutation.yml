@@ -1,10 +1,11 @@
+---
 name: Mutation testing
 
-on:
+"on":
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 permissions: {}
@@ -14,14 +15,15 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  RUBYOPT: -W:deprecated
+  RUBYOPT: -w -W:deprecated -W:performance
   LANG: C.UTF-8
   LC_ALL: C.UTF-8
 
 jobs:
   mutant:
     name: Mutant
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
     permissions:
       contents: read
     services:
@@ -45,49 +47,73 @@ jobs:
       DATABASE_USER: app
       DATABASE_PASSWORD: secret
     steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      with:
-        persist-credentials: false
-
-    # Mutant parses the code with the `parser` gem (it requires `parser/current`), whose newest release has
-    # no grammar for Ruby 4.0 and warns on any Ruby other than 3.3.13. Mutation testing therefore runs on
-    # Ruby 3.3.13 with mutant.gemfile; `rake mutant` installs that bundle from the versions of Gemfile.lock.
-    - uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
-      with:
-        ruby-version: "3.3.13"
-        rubygems: latest
-        bundler-cache: false
-    - name: Check the Ruby version
-      run: script/check_ruby.sh 3.3.13
-    # Installing the gems runs RubyGems, not this project: on Ruby 3.3 a fresh install makes
-    # Gem::Specification exceed Ruby's shape limit, which the opt-in `-W:performance` category reports
-    # (RubyGems 4.0.24, the newest; Ruby 4.0 does not report it). The install step therefore runs with the
-    # default warning categories plus deprecations; the mutation run below enables performance warnings.
-    - name: Install the bundle
-      run: |
-        cp Gemfile.lock mutant.gemfile.lock
-        BUNDLE_GEMFILE=mutant.gemfile bundle install --jobs 4 --retry 3
-    # Every subject, on every run; any alive mutation fails the build.
-    - name: Mutant (full run)
-      env:
-        RUBYOPT: -W:deprecated -W:performance
-      run: BUNDLE_GEMFILE=mutant.gemfile bundle exec mutant run
+      # The job runs a service container, so containers stay available to the runner.
+      - name: Harden the runner
+        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a  # v2.22.4
+        with:
+          egress-policy: block
+          disable-telemetry: true
+          allowed-endpoints: >-
+            *.actions.githubusercontent.com:443
+            api.github.com:443
+            github.com:443
+            index.rubygems.org:443
+            objects.githubusercontent.com:443
+            release-assets.githubusercontent.com:443
+            rubygems.org:443
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      # Mutant parses the code with the `parser` gem (it requires `parser/current`), whose newest release has
+      # no grammar for Ruby 4.0 and warns on any Ruby other than 3.3.13. Mutation testing therefore runs on
+      # Ruby 3.3.13 with mutant.gemfile; script/check installs that bundle from the versions of Gemfile.lock.
+      - uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199  # v1.338.0
+        # Installing RubyGems warns under -w and -W:performance (rubygems/specification.rb, upstream).
+        env:
+          RUBYOPT: -W:deprecated
+        with:
+          ruby-version: 3.3.13
+          rubygems: latest
+          bundler-cache: false
+      # On Ruby 3.3, installing the gems makes Gem::Specification exceed Ruby's shape limit, which -w and
+      # -W:performance report (RubyGems 4.0.24, the newest, upstream). The install runs with deprecations
+      # only; the mutation run enables every category.
+      - name: Install the mutation-testing bundle
+        env:
+          RUBYOPT: -W:deprecated
+        run: |
+          cp Gemfile.lock mutant.gemfile.lock
+          BUNDLE_GEMFILE=mutant.gemfile bundle install --jobs 4 --retry 3
+      # Every subject, on every run; any alive mutation fails the build.
+      - name: Mutant (full run)
+        run: script/check mutant
 
   warning-gate:
-    name: Warning gate
+    name: Mutation warning gate
     if: ${{ !cancelled() }}
     needs: [mutant]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
     permissions:
-      actions: read # reads the logs of the other jobs of this run
+      actions: read  # reads the logs of the other jobs of this run
       contents: read
     steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      with:
-        persist-credentials: false
-
-    - name: Fail on any warning or deprecation in the logs of this run
-      env:
-        GH_TOKEN: ${{ github.token }}
-        GATE_JOB_NAME: Warning gate
-      run: script/warning_gate.sh
+      - name: Harden the runner
+        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a  # v2.22.4
+        with:
+          egress-policy: block
+          disable-telemetry: true
+          disable-sudo: true
+          allowed-endpoints: >-
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            api.github.com:443
+            github.com:443
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Fail on any warning or deprecation in the logs of this run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GATE_JOB_NAME: Mutation warning gate
+        run: script/warning_gate.sh

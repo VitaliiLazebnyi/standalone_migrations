@@ -5,4 +5,5 @@
 # bundle (and of the outdated-gems check, which covers the main bundle).
 eval_gemfile "Gemfile"
 
+# Generates the RBI files of the gems for Sorbet.
 gem "tapioca", "~> 0.20", require: false

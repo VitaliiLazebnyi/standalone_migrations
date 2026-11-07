@@ -1,3 +1,4 @@
+---
 # Docker Compose definition for the ActiveRecord migration playground.
 #
 # Two services:
@@ -28,7 +29,7 @@ services:
       # PostgreSQL that may already own 5432 on the host. The container still
       # listens on 5432 internally (that's what the app service connects to).
       # Override the host port with: DB_HOST_PORT=5544 docker compose up -d db
-      - "${DB_HOST_PORT:-5433}:5432"
+      - ${DB_HOST_PORT:-5433}:5432
     volumes:
       # Named volume => the data directory is persisted across `down`/`up`,
       # `stop`/`start`, and host reboots. Removed only with `docker compose down -v`.
@@ -37,7 +38,7 @@ services:
       # mounted one level up.
       - pgdata:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U app -d app_development"]
+      test: [CMD-SHELL, pg_isready -U app -d app_development]
       interval: 3s
       timeout: 3s
       retries: 20
@@ -65,7 +66,7 @@ services:
       - .:/app
     # Keep the container idle when started with `up`; real work is done via
     # `docker compose run --rm app db <command>`.
-    command: ["sleep", "infinity"]
+    command: [sleep, infinity]
 
 volumes:
   pgdata:

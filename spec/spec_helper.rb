@@ -25,28 +25,30 @@ require_relative "../lib/cli"
 # stubs later has no unevaluated signature for sorbet-runtime to drop (with a warning) when it is replaced.
 T::Utils.run_all_sig_blocks
 
-Dir[File.join(__dir__, "support", "*.rb")].each { |support_file| require support_file }
+Dir.glob(File.join(__dir__, "support", "*.rb")).each { |support_file| require support_file }
+
+# The suite itself is broken: Ruby warnings from the project's files, or unfinished examples.
+class SuiteError < StandardError; end
 
 RSpec.configure do |config|
   config.example_status_persistence_file_path = ".rspec_status"
   config.disable_monkey_patching!
 
-  config.expect_with :rspec do |expectations|
+  config.expect_with(:rspec) do |expectations|
     expectations.syntax = :expect
   end
 
-  config.mock_with :rspec do |mocks|
+  config.mock_with(:rspec) do |mocks|
     mocks.verify_partial_doubles = true
   end
 
-  config.include ProjectFiles
-  config.include OutputCapture
+  config.include(ProjectFiles)
+  config.include(OutputCapture)
 
   # One database per process (see TestDatabase). Mutant runs every mutation in a forked process, which
   # runs the suite hooks again and so gets a database of its own.
-  database = nil
-  config.before(:suite) { database = TestDatabase.create }
-  config.after(:suite) { TestDatabase.drop(database) if database }
+  config.before(:suite) { TestDatabase.prepare }
+  config.after(:suite) { TestDatabase.drop }
 
   # Every example starts from an empty database, the migrator pointed at the example project's
   # migrations, quiet ActiveRecord logging and the default migration output. The files the code writes
@@ -70,21 +72,22 @@ RSpec.configure do |config|
   # Ruby warnings from the project's own files are failures, never noise.
   config.before(:suite) do
     load_time_warnings = WarningGuard.drain
-    raise "Ruby warnings while loading:\n#{load_time_warnings.join}" unless load_time_warnings.empty?
+    raise SuiteError, "Ruby warnings while loading:\n#{load_time_warnings.join}" unless load_time_warnings.empty?
   end
 
   config.after do
     warnings = WarningGuard.drain
-    raise "Ruby warnings emitted by this example:\n#{warnings.join}" unless warnings.empty?
+    raise SuiteError, "Ruby warnings emitted by this example:\n#{warnings.join}" unless warnings.empty?
   end
 
   # Pending and skipped examples hide missing behavior: the suite must not contain any.
   config.after(:suite) do
-    unfinished = RSpec.world.all_examples.select do |example|
-      example.execution_result.status == :pending || example.skipped? || example.pending?
-    end
+    unfinished =
+      RSpec.world.all_examples.select do |example|
+        example.execution_result.status == :pending || example.skipped? || example.pending?
+      end
     unless unfinished.empty?
-      raise "Pending or skipped examples are not allowed:\n#{unfinished.map(&:full_description).join("\n")}"
+      raise SuiteError, "Pending or skipped examples are not allowed:\n#{unfinished.map(&:full_description).join("\n")}"
     end
   end
 end

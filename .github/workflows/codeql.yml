@@ -1,12 +1,13 @@
+---
 name: CodeQL
 
-on:
+"on":
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   schedule:
-    - cron: '41 5 * * 1'
+    - cron: 41 5 * * 1
   workflow_dispatch:
 
 permissions: {}
@@ -18,49 +19,74 @@ concurrency:
 jobs:
   analyze:
     name: CodeQL (${{ matrix.language }}, ${{ matrix.suite }})
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
     permissions:
-      actions: read # CodeQL reads workflow metadata
+      actions: read  # CodeQL reads workflow metadata
       contents: read
-      security-events: write # upload CodeQL results to code scanning
+      security-events: write  # upload CodeQL results to code scanning
     strategy:
       fail-fast: false
       matrix:
         language: [ruby, actions]
         suite: [security-extended, security-and-quality]
     steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      with:
-        persist-credentials: false
-
-    - uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
-      with:
-        languages: ${{ matrix.language }}
-        queries: ${{ matrix.suite }}
-        build-mode: none
-    - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
-      with:
-        category: "/language:${{ matrix.language }}/suite:${{ matrix.suite }}"
-        # Waiting for GitHub to process the upload only adds a dependency on GitHub's backend latency (when
-        # it is slow, the action warns "Timed out waiting for analysis to finish processing"). The results
-        # are still gated: the "CodeQL" code scanning check reports every alert on the pull request.
-        wait-for-processing: false
+      - name: Harden the runner
+        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a  # v2.22.4
+        with:
+          egress-policy: block
+          disable-telemetry: true
+          disable-sudo: true
+          allowed-endpoints: >-
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            api.github.com:443
+            github.com:443
+            objects.githubusercontent.com:443
+            release-assets.githubusercontent.com:443
+            uploads.github.com:443
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066  # v4.39.3
+        with:
+          languages: ${{ matrix.language }}
+          queries: ${{ matrix.suite }}
+          build-mode: none
+      - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066  # v4.39.3
+        with:
+          category: /language:${{ matrix.language }}/suite:${{ matrix.suite }}
+          # Waiting for GitHub to process the upload only adds a dependency on GitHub's backend latency (when
+          # it is slow, the action warns "Timed out waiting for analysis to finish processing"). The results
+          # are still gated: the "CodeQL" code scanning check reports every alert on the pull request.
+          wait-for-processing: false
 
   warning-gate:
-    name: Warning gate
+    name: CodeQL warning gate
     if: ${{ !cancelled() }}
     needs: [analyze]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
     permissions:
-      actions: read # reads the logs of the other jobs of this run
+      actions: read  # reads the logs of the other jobs of this run
       contents: read
     steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      with:
-        persist-credentials: false
-
-    - name: Fail on any warning or deprecation in the logs of this run
-      env:
-        GH_TOKEN: ${{ github.token }}
-        GATE_JOB_NAME: Warning gate
-      run: script/warning_gate.sh
+      - name: Harden the runner
+        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a  # v2.22.4
+        with:
+          egress-policy: block
+          disable-telemetry: true
+          disable-sudo: true
+          allowed-endpoints: >-
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            api.github.com:443
+            github.com:443
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Fail on any warning or deprecation in the logs of this run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GATE_JOB_NAME: CodeQL warning gate
+        run: script/warning_gate.sh

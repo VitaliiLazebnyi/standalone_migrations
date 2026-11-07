@@ -1,10 +1,11 @@
+---
 name: OpenSSF Scorecard
 
-on:
+"on":
   push:
-    branches: [ main ]
+    branches: [main]
   schedule:
-    - cron: '23 6 * * 1'
+    - cron: 23 6 * * 1
   branch_protection_rule:
   workflow_dispatch:
 
@@ -17,49 +18,81 @@ concurrency:
 jobs:
   analysis:
     name: Scorecard analysis
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
     permissions:
       contents: read
-      security-events: write # upload the SARIF results to code scanning
-      id-token: write # publish results to the OpenSSF Scorecard API (OIDC)
+      security-events: write  # upload the SARIF results to code scanning
+      id-token: write  # publish results to the OpenSSF Scorecard API (OIDC)
     steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      with:
-        persist-credentials: false
-
-    - uses: ossf/scorecard-action@fa7117db83c52d787ae5a89f350999701505d78e # v2.5.0
-      with:
-        results_file: results.sarif
-        results_format: sarif
-        publish_results: true
-    - name: Give repository-level findings a valid location
-      # Scorecard reports findings about the whole repository (Branch-Protection, Code-Review, Fuzzing,
-      # ...) under the placeholder URI "no file associated with this alert", which upload-sarif rejects
-      # with a warning. Point them at this workflow, the file that produces them.
-      run: |
-        jq '(.runs[].results[]?.locations[]?.physicalLocation.artifactLocation
-          | select(.uri == "no file associated with this alert")).uri = ".github/workflows/scorecard.yml"' \
-          results.sarif > results.located.sarif
-        mv results.located.sarif results.sarif
-    - uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
-      with:
-        sarif_file: results.sarif
+      # scorecard-action runs as a container action, so containers stay available to the runner.
+      - name: Harden the runner
+        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a  # v2.22.4
+        with:
+          egress-policy: block
+          disable-telemetry: true
+          allowed-endpoints: >-
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            api.deps.dev:443
+            api.github.com:443
+            api.osv.dev:443
+            api.scorecard.dev:443
+            api.securityscorecards.dev:443
+            fulcio.sigstore.dev:443
+            github.com:443
+            oss-fuzz-build-logs.storage.googleapis.com:443
+            rekor.sigstore.dev:443
+            tuf-repo-cdn.sigstore.dev:443
+            uploads.github.com:443
+            www.bestpractices.dev:443
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ossf/scorecard-action@fa7117db83c52d787ae5a89f350999701505d78e  # v2.5.0
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+      - name: Give repository-level findings a valid location
+        # Scorecard reports findings about the whole repository (Branch-Protection, Code-Review, Fuzzing,
+        # ...) under the placeholder URI "no file associated with this alert", which upload-sarif rejects
+        # with a warning. Point them at this workflow, the file that produces them.
+        run: |
+          jq '(.runs[].results[]?.locations[]?.physicalLocation.artifactLocation
+            | select(.uri == "no file associated with this alert")).uri = ".github/workflows/scorecard.yml"' \
+            results.sarif > results.located.sarif
+          mv results.located.sarif results.sarif
+      - uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066  # v4.39.3
+        with:
+          sarif_file: results.sarif
 
   warning-gate:
-    name: Warning gate
+    name: Scorecard warning gate
     if: ${{ !cancelled() }}
     needs: [analysis]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
     permissions:
-      actions: read # reads the logs of the other jobs of this run
+      actions: read  # reads the logs of the other jobs of this run
       contents: read
     steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      with:
-        persist-credentials: false
-
-    - name: Fail on any warning or deprecation in the logs of this run
-      env:
-        GH_TOKEN: ${{ github.token }}
-        GATE_JOB_NAME: Warning gate
-      run: script/warning_gate.sh
+      - name: Harden the runner
+        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a  # v2.22.4
+        with:
+          egress-policy: block
+          disable-telemetry: true
+          disable-sudo: true
+          allowed-endpoints: >-
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            api.github.com:443
+            github.com:443
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Fail on any warning or deprecation in the logs of this run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GATE_JOB_NAME: Scorecard warning gate
+        run: script/warning_gate.sh

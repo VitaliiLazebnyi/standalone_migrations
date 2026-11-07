@@ -1,0 +1,3 @@
+# ShellCheck configuration: every optional check is on (actionlint runs ShellCheck on the workflow
+# scripts too). script/check also passes --severity=style, so that style findings fail.
+enable=all

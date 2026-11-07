@@ -64,7 +64,7 @@ module Boot
 
     # By default, keep output clean: show the high-level migration progress
     # (the `== ... migrating ==` lines) but not the raw DEBUG SQL. Set VERBOSE=1
-    # to log every SQL statement — useful for demos and debugging.
+    # to log every SQL statement, useful for demos and debugging.
     sig { void }
     def configure_output
       ActiveRecord::Base.logger = (Logger.new($stdout) if ENV["VERBOSE"] == "1")

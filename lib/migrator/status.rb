@@ -27,9 +27,9 @@ module Migrator
       # @return [void]
       sig { params(migration_context: ActiveRecord::MigrationContext).void }
       def print(migration_context)
-        puts format(ROW, "Status", "Version", "Name"), RULE
-        puts rows(migration_context), RULE
-        puts "#{migration_context.open.pending_migrations.size} pending migration(s)."
+        puts(format(ROW, "Status", "Version", "Name"), RULE)
+        puts(rows(migration_context), RULE)
+        puts("#{migration_context.open.pending_migrations.size} pending migration(s).")
       end
 
       # One row per migration file or applied version, in version order. An

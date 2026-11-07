@@ -12,6 +12,7 @@ require "fileutils"
 require "stringio"
 require_relative "boot"
 require_relative "migrator/baseline"
+require_relative "migrator/console"
 require_relative "migrator/input"
 require_relative "migrator/status"
 
@@ -22,7 +23,10 @@ module Migrator
   # Raised for a malformed argument (a migration version or a migration name)
   # before anything touches the database.
   class InvalidInput < ArgumentError; end
-  public_constant :InvalidInput
+  # Raised when a file that a command reads is missing: the seed file, or the schema definition in the
+  # schema snapshot.
+  class NotFound < StandardError; end
+  public_constant :InvalidInput, :NotFound
 
   class << self
     extend T::Sig
@@ -55,7 +59,7 @@ module Migrator
     def scan(output = Boot::SCHEMA_FILE)
       FileUtils.mkdir_p(File.dirname(output))
       File.write(output, dump_schema)
-      puts "Scanned #{table_count} tables -> #{output}"
+      puts("Scanned #{table_count} tables -> #{output}")
       output
     end
 
@@ -72,7 +76,7 @@ module Migrator
     def migrate(target_version = nil)
       migration_context = context
       migration_context.migrate(target_version)
-      puts "Migrated. Current schema version: #{migration_context.current_version}"
+      puts("Migrated. Current schema version: #{migration_context.current_version}")
     end
 
     # ---------------------------------------------------------------------------
@@ -88,7 +92,7 @@ module Migrator
     def rollback(steps = 1)
       migration_context = context
       migration_context.rollback(steps)
-      puts "Rolled back #{steps} migration(s). Current schema version: #{migration_context.current_version}"
+      puts("Rolled back #{steps} migration(s). Current schema version: #{migration_context.current_version}")
     end
 
     # ---------------------------------------------------------------------------
@@ -106,7 +110,8 @@ module Migrator
     def stamp(version)
       version = Input.migration_version(version)
       schema_migration = pool.schema_migration
-      schema_migration.create_table # ensure schema_migrations exists (no-op if it already does)
+      # Ensure schema_migrations exists (a no-op when it already does).
+      schema_migration.create_table
       record(schema_migration, version)
     end
 
@@ -146,24 +151,24 @@ module Migrator
     # @return [void]
     sig { params(file: String).void }
     def seed(file = Boot::SEEDS_FILE)
-      raise "Seed file not found: #{file}" unless File.exist?(file)
+      raise(NotFound, "Seed file not found: #{file}") unless File.exist?(file)
 
-      load file
-      puts "Seeded from #{file}"
+      load(file)
+      puts("Seeded from #{file}")
     end
 
     # ---------------------------------------------------------------------------
-    # SETUP: one-shot first-run convenience — apply all migrations, then seed.
+    # SETUP: one-shot first-run convenience: apply all migrations, then seed.
     # ---------------------------------------------------------------------------
     #
     # @return [void]
     sig { void }
     def setup
-      puts "==> migrating..."
+      puts("==> migrating...")
       migrate
-      puts "==> seeding..."
+      puts("==> seeding...")
       seed
-      puts "Ready: #{table_count} tables, example data loaded."
+      puts("Ready: #{table_count} tables, example data loaded.")
     end
 
     # ---------------------------------------------------------------------------
@@ -175,16 +180,10 @@ module Migrator
     # @return [void] never returns: the process becomes psql
     sig { returns(T.noreturn) }
     def console
-      settings = Boot.config.transform_values(&:to_s)
-      exec({ "PGPASSWORD" => settings.fetch("password", "") },
-           "psql",
-           "-h", settings.fetch("host", ""),
-           "-p", settings.fetch("port", ""),
-           "-U", settings.fetch("username", ""),
-           settings.fetch("database", ""))
+      Console.start
     end
 
-    # Human-readable list of every migration and whether it is applied — the
+    # Human-readable list of every migration and whether it is applied, the
     # equivalent of `rails db:migrate:status`. An applied version whose
     # migration file is missing is listed as NO FILE.
     #
@@ -199,7 +198,7 @@ module Migrator
     # @return [void]
     sig { void }
     def version
-      puts "Current schema version: #{context.current_version}"
+      puts("Current schema version: #{context.current_version}")
     end
 
     private
@@ -212,10 +211,10 @@ module Migrator
     sig { params(schema_migration: ActiveRecord::SchemaMigration, version: String).void }
     def record(schema_migration, version)
       if schema_migration.versions.include?(version)
-        puts "Version #{version} is already recorded — nothing to do."
+        puts("Version #{version} is already recorded — nothing to do.")
       else
         schema_migration.create_version(version)
-        puts "Stamped version #{version} as applied (without running it)."
+        puts("Stamped version #{version} as applied (without running it).")
       end
     end
 
@@ -223,7 +222,8 @@ module Migrator
     # connection internally (pool.with_connection).
     sig { returns(String) }
     def dump_schema
-      StringIO.new.tap { |schema| ActiveRecord::SchemaDumper.dump(pool, schema) }.string
+      StringIO.new.tap { |schema| ActiveRecord::SchemaDumper.dump(pool, schema) }
+              .string
     end
 
     sig { returns(Integer) }

@@ -1,3 +1,4 @@
+---
 # Dependencies that are deliberately NOT at their newest release because an upstream constraint forbids it.
 # `rake outdated` (script/outdated.rb) fails for any other outdated dependency, and for a hold that is no
 # longer needed. Each entry quotes the exact blocking constraint (checked against rubygems.org on 2026-11-07).
