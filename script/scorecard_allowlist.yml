@@ -4,6 +4,13 @@
 # dependency stays. `rake scorecard` fails for any other low-scoring dependency, for an entry whose
 # dependency now scores at or above the threshold, and for an entry the bundle no longer contains.
 gems:
+  flog:
+    reviewed_score: 1.5
+    reviewed_on: 2026-11-07
+    reason: >-
+      The method-complexity gate (`rake flog`). It is the only tool that scores the complexity of each Ruby
+      method as a whole (RuboCop's Metrics cops count one dimension each), and it comes from the same
+      maintainers as Flay (seattlerb). It is a development-only dependency and is not in the Docker image.
   ruby-progressbar:
     reviewed_score: 2.8
     reviewed_on: 2026-10-28

@@ -36,7 +36,7 @@ jobs:
         with:
           egress-policy: block
           disable-telemetry: true
-          disable-sudo-and-containers: true
+          disable-sudo: true
           allowed-endpoints: >-
             *.actions.githubusercontent.com:443
             *.blob.core.windows.net:443
@@ -76,7 +76,7 @@ jobs:
         with:
           egress-policy: block
           disable-telemetry: true
-          disable-sudo-and-containers: true
+          disable-sudo: true
           allowed-endpoints: >-
             *.actions.githubusercontent.com:443
             *.blob.core.windows.net:443
