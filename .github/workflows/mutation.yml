@@ -52,7 +52,7 @@ jobs:
     # Mutant parses the code with the `parser` gem (it requires `parser/current`), whose newest release has
     # no grammar for Ruby 4.0 and warns on any Ruby other than 3.3.13. Mutation testing therefore runs on
     # Ruby 3.3.13 with mutant.gemfile; `rake mutant` installs that bundle from the versions of Gemfile.lock.
-    - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
+    - uses: ruby/setup-ruby@de492cf36cbab201753d720ce4f4e336cd688c94 # v1.336.0
       with:
         ruby-version: "3.3.13"
         rubygems: latest
