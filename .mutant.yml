@@ -1,0 +1,16 @@
+usage: opensource
+integration:
+  name: rspec
+includes:
+  - lib
+requires:
+  - ./lib/cli
+matcher:
+  subjects:
+    - Boot*
+    - CLI*
+    - Migrator*
+mutation:
+  timeout: 20.0
+coverage_criteria:
+  process_abort: true

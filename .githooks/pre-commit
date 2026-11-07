@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Pre-commit hook: the fast gates (tests, linting, suppressions, type-checking).
+# Install: git config core.hooksPath .githooks
+set -euo pipefail
+
+echo "==> Checking for inline suppressions..."
+script/forbidden_suppressions.sh
+
+echo "==> Running RuboCop..."
+bundle exec rubocop
+
+echo "==> Running RSpec..."
+bundle exec rspec --format progress
+
+echo "==> Running Sorbet type-check..."
+bundle exec rake typecheck
+
+echo "==> All checks passed."

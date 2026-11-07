@@ -1,3 +1,6 @@
+# typed: true
+# frozen_string_literal: true
+
 # Orders placed by users, and the line items within each order.
 #
 # Demonstrates: a composite index tuned for "this user's recent orders"

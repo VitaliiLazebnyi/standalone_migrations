@@ -1,0 +1,9 @@
+# frozen_string_literal: true
+
+# Used by the mutation-testing job and `rake mutant` only. Mutant (and unparser) load the parser gem's
+# `parser/current`, whose newest grammar is Ruby 3.3 and which warns on any other Ruby. Mutation testing
+# therefore runs on the newest Ruby 3.3 release: this bundle is the main Gemfile with the Ruby
+# requirement replaced (Bundler keeps the last `ruby` declaration).
+eval_gemfile "Gemfile"
+
+ruby "3.3.13"

@@ -1,3 +1,6 @@
+# typed: true
+# frozen_string_literal: true
+
 # Users and their 1:1 profiles.
 #
 # Demonstrates: a unique index, and a one-to-one relationship enforced with a

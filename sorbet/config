@@ -1,0 +1,17 @@
+--dir
+.
+--ignore
+vendor/
+--ignore
+coverage/
+--ignore
+doc/
+--ignore
+.yardoc/
+--ignore
+tmp/
+--ignore
+.mutant/
+--suppress-payload-superclass-redefinition-for=RDoc::Markup::List
+--suppress-payload-superclass-redefinition-for=RDoc::Markup::ListItem
+--suppress-payload-superclass-redefinition-for=RDoc::Markup::Raw

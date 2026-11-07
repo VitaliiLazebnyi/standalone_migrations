@@ -1,0 +1,8 @@
+# frozen_string_literal: true
+
+# Used by the Sorbet job and `rake typecheck` only: Tapioca generates the RBI files Sorbet checks against.
+# It lives apart from the main Gemfile so that Tapioca and its dependencies stay out of the application
+# bundle (and of the outdated-gems check, which covers the main bundle).
+eval_gemfile "Gemfile"
+
+gem "tapioca", "~> 0.20", require: false

@@ -1,3 +1,6 @@
+# typed: true
+# frozen_string_literal: true
+
 # Product reviews written by users.
 #
 # Demonstrates: two foreign keys on one table, a CHECK constraint, and a

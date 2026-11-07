@@ -1,3 +1,6 @@
+# typed: true
+# frozen_string_literal: true
+
 # Products belong to a category.
 #
 # Demonstrates: a COMPOSITE index ([category_id, status]) to speed up the very

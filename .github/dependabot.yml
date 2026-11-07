@@ -1,0 +1,36 @@
+# Proposes the updates that `rake outdated` (script/outdated.rb) demands: gems, GitHub Actions (pinned to
+# commit SHAs) and the Docker images (pinned to digests).
+version: 2
+updates:
+  - package-ecosystem: bundler
+    directory: /
+    schedule:
+      interval: weekly
+    # A release has to be a week old before it is proposed (supply-chain hygiene). Until then `rake
+    # outdated` reports it, so a newer release is never silently skipped.
+    cooldown:
+      default-days: 7
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    # A release has to be a week old before it is proposed (supply-chain hygiene). Until then `rake
+    # outdated` reports it, so a newer release is never silently skipped.
+    cooldown:
+      default-days: 7
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    # A release has to be a week old before it is proposed (supply-chain hygiene). Until then `rake
+    # outdated` reports it, so a newer release is never silently skipped.
+    cooldown:
+      default-days: 7
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+    # A release has to be a week old before it is proposed (supply-chain hygiene). Until then `rake
+    # outdated` reports it, so a newer release is never silently skipped.
+    cooldown:
+      default-days: 7

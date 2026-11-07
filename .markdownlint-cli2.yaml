@@ -1,0 +1,16 @@
+# markdownlint (markdownlint-cli2) configuration. Every rule is on; the settings below adapt two of them.
+config:
+  default: true
+  MD013:
+    # Prose wraps at 80; a table row is one line by definition and cannot be wrapped, and fenced code shows
+    # commands and output exactly as they are.
+    line_length: 80
+    tables: false
+    code_blocks: false
+  MD060:
+    style: compact
+ignores:
+  - "vendor/**"
+  - "coverage/**"
+  - "doc/**"
+  - "tmp/**"

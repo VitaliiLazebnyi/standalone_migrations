@@ -1,49 +1,242 @@
 name: CI
 
-# Exercises the migration engine end-to-end on every push / PR:
-#   migrate -> schema-drift check -> seed -> rollback/re-migrate roundtrip.
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+# Nothing is writable by default; every job re-declares the (read-only) permissions it needs.
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RUBYOPT: -W:deprecated -W:performance
 
 jobs:
-  migrations:
-    runs-on: ubuntu-latest
+  test:
+    name: RSpec (PostgreSQL 18)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:18.6@sha256:979bccfde35445db618c65107d27d08c6c21339d8dc3ad4c830c6633947be0e4
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: app_development
+          # Explicit authentication methods: initdb warns when it has to default them to "trust".
+          POSTGRES_INITDB_ARGS: --auth-local=trust --auth-host=scram-sha-256
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U app -d app_development"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      RUBYOPT: -w -W:deprecated -W:performance
+      DATABASE_HOST: localhost
+      DATABASE_PORT: 5432
+      DATABASE_USER: app
+      DATABASE_PASSWORD: secret
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
 
-      - name: Build the app image
-        run: docker compose build
+    - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
+      with:
+        ruby-version: .ruby-version
+        rubygems: latest
+        bundler-cache: true
+    - name: Check the Ruby version
+      run: script/check_ruby.sh
+    # SimpleCov enforces minimum_coverage 100 (line + branch) and fails the run below it.
+    - name: RSpec with the 100% line + branch coverage gate
+      run: bundle exec rspec
 
-      - name: Start PostgreSQL
-        run: docker compose up -d db
+  lint:
+    name: RuboCop
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
 
-      # Function 2: apply every migration to a fresh database.
-      - name: Apply migrations
-        run: docker compose run --rm app db migrate
+    - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
+      with:
+        ruby-version: .ruby-version
+        rubygems: latest
+        bundler-cache: true
+    - name: Check the Ruby version
+      run: script/check_ruby.sh
+    - run: bundle exec rake rubocop
+    - name: Forbid inline suppressions
+      run: script/forbidden_suppressions.sh
 
-      # Function 1 used as a guard: regenerate db/schema.rb from the live
-      # database and fail if it differs from the committed snapshot. This is
-      # what `scan` is *for* in CI — it proves the checked-in schema.rb is in
-      # sync with the migrations. If this fails, run `make scan` and commit.
-      - name: Schema is in sync (no drift)
-        run: |
-          docker compose run --rm app db scan
-          git diff --exit-code db/schema.rb \
-            || { echo "::error::db/schema.rb is out of date — run 'make scan' and commit the result."; exit 1; }
+  typecheck:
+    name: Sorbet
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
 
-      # The seed file must load cleanly against the full schema.
-      - name: Seeds load
-        run: docker compose run --rm app db seed
+    - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
+      with:
+        ruby-version: .ruby-version
+        rubygems: latest
+        bundler-cache: true
+    - name: Check the Ruby version
+      run: script/check_ruby.sh
+    - run: bundle exec rake typecheck
 
-      # Function 3: prove every migration is reversible by rolling the whole
-      # stack back down and migrating up again.
-      - name: Migrations are reversible (down + up roundtrip)
-        run: |
-          docker compose run --rm app db rollback STEP=8
-          docker compose run --rm app db migrate
+  docs:
+    name: YARD (100% documented)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
 
-      - name: Tear down
-        if: always()
-        run: docker compose down -v
+    - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
+      with:
+        ruby-version: .ruby-version
+        rubygems: latest
+        bundler-cache: true
+    - name: Check the Ruby version
+      run: script/check_ruby.sh
+    - run: bundle exec rake yard
+
+  smells:
+    name: Reek and Flay
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+
+    - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
+      with:
+        ruby-version: .ruby-version
+        rubygems: latest
+        bundler-cache: true
+    - name: Check the Ruby version
+      run: script/check_ruby.sh
+    - run: bundle exec rake reek flay
+
+  # Every dependency must be at its newest release, except those on the documented hold list
+  # (script/outdated_holds.yml), which quotes the upstream constraint that blocks each one.
+  outdated:
+    name: Outdated dependencies
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+
+    - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
+      with:
+        ruby-version: .ruby-version
+        rubygems: latest
+        bundler-cache: true
+    - name: Check the Ruby version
+      run: script/check_ruby.sh
+    - run: bundle exec rake outdated
+
+  # The project as a user runs it: the Docker image and docker compose. Applies every migration to a fresh
+  # database, checks db/schema.rb for drift, loads the seeds and rolls everything back and forth.
+  end-to-end:
+    name: Docker end-to-end
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+
+    # The app container runs as the runner's user, so that `db scan` can write to the checkout.
+    - name: Use the runner's uid and gid in the container
+      run: |
+        echo "APP_UID=$(id -u)" >> "$GITHUB_ENV"
+        echo "APP_GID=$(id -g)" >> "$GITHUB_ENV"
+
+    - name: Build the app image
+      run: docker compose build
+
+    - name: Start PostgreSQL
+      run: docker compose up -d --wait db
+
+    # Function 2: apply every migration to a fresh database.
+    - name: Apply migrations
+      run: docker compose run --rm app db migrate
+
+    # Function 1 used as a guard: regenerate db/schema.rb from the live
+    # database and fail if it differs from the committed snapshot. This is
+    # what `scan` is *for* in CI — it proves the checked-in schema.rb is in
+    # sync with the migrations. If this fails, run `make scan` and commit.
+    - name: Schema is in sync (no drift)
+      run: |
+        docker compose run --rm app db scan
+        git diff --exit-code db/schema.rb \
+          || { echo "::error::db/schema.rb is out of date — run 'make scan' and commit the result."; exit 1; }
+
+    # The seed file must load cleanly against the full schema.
+    - name: Seeds load
+      run: docker compose run --rm app db seed
+
+    # Function 3: prove every migration is reversible by rolling the whole
+    # stack back down and migrating up again.
+    - name: Migrations are reversible (down + up roundtrip)
+      run: |
+        docker compose run --rm app db rollback STEP=8
+        docker compose run --rm app db migrate
+
+    - name: Invalid input is rejected without touching the database
+      run: |
+        if docker compose run --rm app db migrate VERSION=; then
+          echo "::error::db migrate VERSION= must fail"
+          exit 1
+        fi
+        docker compose run --rm app db status | tee status.txt
+        grep -q '^0 pending migration(s)\.$' status.txt
+
+    - name: Tear down
+      if: always()
+      run: docker compose down -v
+
+  warning-gate:
+    name: Warning gate
+    if: ${{ !cancelled() }}
+    needs: [test, lint, typecheck, docs, smells, outdated, end-to-end]
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read # reads the logs of the other jobs of this run
+      contents: read
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+
+    - name: Fail on any warning or deprecation in the logs of this run
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GATE_JOB_NAME: Warning gate
+      run: script/warning_gate.sh
