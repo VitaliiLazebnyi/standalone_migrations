@@ -15,3 +15,5 @@ tmp/
 --suppress-payload-superclass-redefinition-for=RDoc::Markup::List
 --suppress-payload-superclass-redefinition-for=RDoc::Markup::ListItem
 --suppress-payload-superclass-redefinition-for=RDoc::Markup::Raw
+Rakefile
+bin/db

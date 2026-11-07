@@ -11,9 +11,6 @@ require_relative "migrator"
 module CLI
   extend T::Sig
 
-  # The parsed KEY=value arguments, keyed by the upper-cased KEY.
-  Options = T.type_alias { T::Hash[String, T.nilable(String)] }
-
   # Printed by `db help` (it starts with an empty line).
   USAGE = <<~TEXT
 
@@ -50,13 +47,24 @@ module CLI
   # The method of {Commands} that runs each command.
   COMMANDS = T.let(
     {
-      "migrate" => :migrate, "rollback" => :rollback, "scan" => :scan, "seed" => :seed, "setup" => :setup,
-      "console" => :console, "psql" => :console, "baseline" => :baseline, "stamp" => :stamp,
-      "status" => :status, "version" => :version, "help" => :help, "-h" => :help, "--help" => :help
+      "migrate" => :migrate,
+      "rollback" => :rollback,
+      "scan" => :scan,
+      "seed" => :seed,
+      "setup" => :setup,
+      "console" => :console,
+      "psql" => :console,
+      "baseline" => :baseline,
+      "stamp" => :stamp,
+      "status" => :status,
+      "version" => :version,
+      "help" => :help,
+      "-h" => :help,
+      "--help" => :help
     }.freeze,
     T::Hash[String, Symbol]
   )
-  public_constant :Options, :USAGE, :COMMANDS
+  public_constant :USAGE, :COMMANDS
 
   class << self
     extend T::Sig
@@ -79,7 +87,7 @@ module CLI
     #
     # @param arguments [Array<String>]
     # @return [Hash{String => String, nil}]
-    sig { params(arguments: T::Array[String]).returns(Options) }
+    sig { params(arguments: T::Array[String]).returns(T::Hash[String, T.nilable(String)]) }
     def parse_options(arguments)
       arguments.to_h do |argument|
         key, value = argument.split("=", 2)
@@ -90,20 +98,20 @@ module CLI
     private
 
     # Run +command+, or report that there is no such command.
-    sig { params(command: String, options: Options).returns(Integer) }
+    sig { params(command: String, options: T::Hash[String, T.nilable(String)]).returns(Integer) }
     def dispatch(command, options)
       name = COMMANDS[command]
       return Commands.public_send(name, options) if name
 
-      warn "Unknown command: #{command}"
-      warn "Run `db help` for usage."
+      warn("Unknown command: #{command}")
+      warn("Run `db help` for usage.")
       1
     end
 
     # Print the problem with the arguments; the command fails.
     sig { params(message: String).returns(Integer) }
     def report(message)
-      warn message
+      warn(message)
       1
     end
   end

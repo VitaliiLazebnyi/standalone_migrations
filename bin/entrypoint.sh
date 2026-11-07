@@ -13,8 +13,8 @@ wait_seconds="${DATABASE_WAIT_SECONDS:-60}"
 if command -v pg_isready >/dev/null 2>&1; then
   echo "Waiting for PostgreSQL at ${host}:${port}..."
   waited=0
-  until pg_isready -h "$host" -p "$port" -U "$user" >/dev/null 2>&1; do
-    if [ "$waited" -ge "$wait_seconds" ]; then
+  until pg_isready -h "${host}" -p "${port}" -U "${user}" >/dev/null 2>&1; do
+    if [ "${waited}" -ge "${wait_seconds}" ]; then
       echo "PostgreSQL at ${host}:${port} did not accept connections within ${wait_seconds}s." >&2
       exit 1
     fi

@@ -1,5 +1,9 @@
-# typed: false
+# typed: strict
 # frozen_string_literal: true
+
+require "active_record"
+require "active_record/connection_adapters/postgresql_adapter"
+require "sorbet-runtime"
 
 # Every test process works in a PostgreSQL database of its own, so that parallel runs (mutant forks one
 # process per mutation) never see each other's tables or migration locks. The connection settings come
@@ -11,37 +15,47 @@ module TestDatabase
   public_constant :MAINTENANCE
 
   class << self
-    # Create a fresh database for this process, point DATABASE_NAME (read by config/database.yml) at it
-    # and connect to it.
-    # @return [String] the database name
-    def create
-      name = "standalone_migrations_test_#{Process.pid}"
+    extend T::Sig
+
+    # The database of this process.
+    # @return [String]
+    sig { returns(String) }
+    def name
+      "standalone_migrations_test_#{Process.pid}"
+    end
+
+    # Create a fresh database for this process, point DATABASE_NAME (read by config/database.yml, and
+    # inherited by the bin/db processes that the feature specs start) at it and connect to it.
+    # @return [void]
+    sig { void }
+    def prepare
       with_maintenance_connection do |connection|
         connection.drop_database(name)
         connection.create_database(name)
       end
       ENV["DATABASE_NAME"] = name
       ActiveRecord::Base.establish_connection(Boot.config)
-      name
     end
 
     # Drop the database of this process.
-    # @param name [String]
     # @return [void]
-    def drop(name)
+    sig { void }
+    def drop
       ActiveRecord::Base.connection_handler.clear_all_connections!(:all)
       with_maintenance_connection { |connection| connection.drop_database(name) }
     end
 
     # Drop every table, so that each example starts from an empty database.
     # @return [void]
+    sig { void }
     def empty
-      connection = ActiveRecord::Base.connection
+      connection = ActiveRecord::Base.lease_connection
       connection.tables.each { |table| connection.drop_table(table, force: :cascade) }
     end
 
     private
 
+    sig { params(block: T.proc.params(connection: ActiveRecord::ConnectionAdapters::PostgreSQLAdapter).void).void }
     def with_maintenance_connection(&block)
       pool = ActiveRecord::Base.establish_connection(Boot.config.merge("database" => MAINTENANCE))
       pool.with_connection(&block)

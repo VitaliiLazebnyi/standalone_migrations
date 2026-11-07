@@ -3,3 +3,4 @@
 --exclude vendor/
 --exclude spec/
 lib/**/*.rb
+script/*.rb

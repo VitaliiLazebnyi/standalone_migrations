@@ -2,7 +2,7 @@
 # typed: strict
 # frozen_string_literal: true
 
-# `db` — a tiny Rails-like migration CLI built on standalone ActiveRecord.
+# `db`: a tiny Rails-like migration CLI built on standalone ActiveRecord.
 # Run `db help` for the commands (the usage text lives in lib/cli.rb).
 
 require_relative "../lib/cli"

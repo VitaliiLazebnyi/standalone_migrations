@@ -28,7 +28,7 @@ module Migrator
         version = Time.now.utc.strftime("%Y%m%d%H%M%S")
         filename = path(version, name)
         File.write(filename, migration_source(ActiveSupport::Inflector.camelize(name), schema_body(Boot::SCHEMA_FILE)))
-        puts "Wrote baseline migration -> #{filename}"
+        puts("Wrote baseline migration -> #{filename}")
         version
       end
 
@@ -39,9 +39,9 @@ module Migrator
       sig { params(version: String).returns(String) }
       def announce(version)
         puts
-        puts "Done. This database is now under migration control at version #{version}."
-        puts "Fresh databases will rebuild the full schema from this migration; from"
-        puts "here on, add new migrations with later timestamps and run `db migrate`."
+        puts("Done. This database is now under migration control at version #{version}.")
+        puts("Fresh databases will rebuild the full schema from this migration; from")
+        puts("here on, add new migrations with later timestamps and run `db migrate`.")
         version
       end
 
@@ -54,9 +54,10 @@ module Migrator
       def schema_body(schema_file)
         # `scan` writes UTF-8; read it as such whatever the locale.
         lines = definition_lines(File.binread(schema_file).force_encoding(Encoding::UTF_8).lines)
-        raise "Could not find a schema definition in #{schema_file}. Run `db scan` first." unless lines
+        raise(NotFound, "Could not find a schema definition in #{schema_file}. Run `db scan` first.") unless lines
 
-        lines.map { |line| indent(line) }.join
+        lines.map { |line| indent(line) }
+             .join
       end
 
       # Render the baseline migration file. `change` is reversible (create_table /

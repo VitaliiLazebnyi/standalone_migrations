@@ -1,10 +1,10 @@
-# typed: true
+# typed: strict
 # frozen_string_literal: true
 
 # Seed data for the example schema. Loaded by `db seed`.
 #
 # Idempotent: it truncates the domain tables (RESTART IDENTITY CASCADE) and
-# re-inserts a small, fully wired-up dataset that exercises every relationship —
+# re-inserts a small, fully wired-up dataset that exercises every relationship:
 # 1:1, self-referential tree, 1:N, M:N, the composite-unique constraints, and
 # the reviews counter cache.
 
@@ -52,12 +52,27 @@ module Seeds
   home        = Category.create!(name: "Home & Kitchen", slug: "home-kitchen")
 
   # --- products ----------------------------------------------------------------
-  phone   = Product.create!(category_id: phones.id, name: "Nimbus Phone X", sku: "PH-X-001",
-                            status: "active", price_cents: 79_900)
-  earbuds = Product.create!(category_id: audio.id,  name: "AeroBuds Pro",   sku: "AU-EB-002",
-                            status: "active", price_cents: 14_900)
-  kettle  = Product.create!(category_id: home.id,   name: "SteepMaster Kettle", sku: "HM-KT-003",
-                            status: "draft", price_cents: 5900)
+  phone = Product.create!(
+    category_id: phones.id,
+    name: "Nimbus Phone X",
+    sku: "PH-X-001",
+    status: "active",
+    price_cents: 79_900
+  )
+  earbuds = Product.create!(
+    category_id: audio.id,
+    name: "AeroBuds Pro",
+    sku: "AU-EB-002",
+    status: "active",
+    price_cents: 14_900
+  )
+  kettle = Product.create!(
+    category_id: home.id,
+    name: "SteepMaster Kettle",
+    sku: "HM-KT-003",
+    status: "draft",
+    price_cents: 5900
+  )
 
   # --- warehouses + inventories (join, composite-unique product/warehouse) -----
   east = Warehouse.create!(code: "WH-EAST", region: "us-east")
@@ -79,13 +94,16 @@ module Seeds
   ProductTag.create!(product_id: earbuds.id, tag_id: on_sale.id)
 
   # --- orders + order_items (1:N, composite-unique order/product) --------------
-  o1 = Order.create!(user_id: alice.id, number: "ORD-1001", status: "paid",
-                     total_cents: phone.price_cents + earbuds.price_cents)
+  o1 = Order.create!(
+    user_id: alice.id,
+    number: "ORD-1001",
+    status: "paid",
+    total_cents: phone.price_cents + earbuds.price_cents
+  )
   OrderItem.create!(order_id: o1.id, product_id: phone.id,   quantity: 1, unit_cents: phone.price_cents)
   OrderItem.create!(order_id: o1.id, product_id: earbuds.id, quantity: 1, unit_cents: earbuds.price_cents)
 
-  o2 = Order.create!(user_id: bob.id, number: "ORD-1002", status: "pending",
-                     total_cents: earbuds.price_cents * 2)
+  o2 = Order.create!(user_id: bob.id, number: "ORD-1002", status: "pending", total_cents: earbuds.price_cents * 2)
   OrderItem.create!(order_id: o2.id, product_id: earbuds.id, quantity: 2, unit_cents: earbuds.price_cents)
 
   # --- reviews (CHECK 1..5, one per user/product) + counter cache --------------
@@ -102,9 +120,16 @@ module Seeds
   # --- summary -----------------------------------------------------------------
   puts "Seeded:"
   {
-    "users" => User, "profiles" => Profile, "categories" => Category,
-    "products" => Product, "warehouses" => Warehouse, "inventories" => Inventory,
-    "orders" => Order, "order_items" => OrderItem, "tags" => Tag,
-    "product_tags" => ProductTag, "reviews" => Review
+    "users" => User,
+    "profiles" => Profile,
+    "categories" => Category,
+    "products" => Product,
+    "warehouses" => Warehouse,
+    "inventories" => Inventory,
+    "orders" => Order,
+    "order_items" => OrderItem,
+    "tags" => Tag,
+    "product_tags" => ProductTag,
+    "reviews" => Review
   }.each { |label, model| puts format("  %<label>-13s %<count>d", label:, count: model.count) }
 end

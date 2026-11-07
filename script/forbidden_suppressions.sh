@@ -15,9 +15,9 @@ status=0
 check() {
   local description=$1 pattern=$2 scope=${3:-.}
   local hits
-  hits=$(printf '%s\n' "$files" | grep -E "^${scope}" | xargs -r grep -nEH -e "$pattern" -- || true)
-  if [ -n "$hits" ]; then
-    printf 'Forbidden (%s):\n%s\n\n' "$description" "$hits"
+  hits=$(printf '%s\n' "${files}" | grep -E "^${scope}" | xargs -r grep -nEH -e "${pattern}" -- || true)
+  if [[ -n ${hits} ]]; then
+    printf 'Forbidden (%s):\n%s\n\n' "${description}" "${hits}"
     status=1
   fi
 }
@@ -30,6 +30,10 @@ check 'gitleaks allow' 'gitleaks:allow'
 check 'zizmor ignore' 'zizmor: ?ignore'
 check 'shellcheck disable' 'shellcheck +disable'
 check 'hadolint ignore' 'hadolint +(ignore|global)'
+check 'yamllint disable' 'yamllint +disable'
+check 'ShellCheck rc disable' '^[[:space:]]*disable=' '\.shellcheckrc'
+check 'editorconfig-checker disable' 'editorconfig-checker-disable'
+check 'shfmt ignore' 'shfmt:ignore'
 check 'markdownlint disable' 'markdownlint-(disable|capture|restore|configure-file)'
 check 'typos ignore' 'typos: ?(ignore|off)|spellchecker: ?(disable|ignore)'
 check 'trivy ignore' 'trivy:ignore'
@@ -37,16 +41,18 @@ check 'LGTM/CodeQL suppression' 'lgtm\[|codeql\[|codeql-disable|lgtm: ?ignore'
 check 'nosec' 'nosec'
 check 'warning silencing' '[$]VERBOSE *= *(nil|false)|Warning\.ignore|silence_warnings|[$]stderr *= *File::NULL|-W0|RUBYOPT=.*-W:no-'
 check 'skipped or focused test' '^[[:space:]]*([xf](it|describe|context)|skip|pending)([[:space:]]|\()|focus: *true|, *:focus|, *(skip|pending): ' 'spec/'
-check 'Sorbet escape hatch' 'T\.(unsafe|cast|bind|untyped)\b|typed: *(false|ignore)' '(lib/|bin/)'
-check 'Sorbet sigil weaker than true' 'typed: *(false|ignore)' 'db/'
+# Everything but the RSpec example files and spec_helper.rb is `typed: strict` (see .rubocop.yml).
+strict='(lib/|bin/|db/|script/|spec/support/|Rakefile)'
+check 'Sorbet escape hatch' 'T\.(unsafe|cast|bind|untyped)\b' "${strict}"
+check 'Sorbet sigil weaker than strict' 'typed: *(false|ignore|true)$' "${strict}"
 
 # Files that exist only to hold exceptions.
 for exception_file in .rubocop_todo.yml .reek.yml config.reek .trivyignore .trivyignore.yaml .gitleaksignore \
   .hadolint.yaml .hadolint.yml .markdownlintignore _typos.toml typos.toml .typos.toml .simplecov; do
-  if printf '%s\n' "$files" | grep -qx -- "$exception_file"; then
-    printf 'Forbidden (exception file): %s\n\n' "$exception_file"
+  if printf '%s\n' "${files}" | grep -qx -- "${exception_file}"; then
+    printf 'Forbidden (exception file): %s\n\n' "${exception_file}"
     status=1
   fi
 done
 
-exit "$status"
+exit "${status}"
