@@ -7,7 +7,7 @@ ruby file: ".ruby-version"
 # ActiveRecord on its own, without the rest of Rails. This gives us the real
 # migration engine (ActiveRecord::Migration), the schema dumper, and the
 # migration context used by `bin/db`.
-gem "activerecord", "~> 8.1", ">= 8.1.4"
+gem "activerecord", "~> 8.1", ">= 8.1.4.1"
 
 # PostgreSQL adapter.
 gem "pg", "~> 1.7"
@@ -25,7 +25,7 @@ group :development, :test do
   gem "reek", "~> 6.6", require: false
   gem "rspec", "~> 3.13", require: false
   gem "rubocop", "~> 1.92", require: false
-  gem "rubocop-md", "~> 2.0", require: false
+  gem "rubocop-md", "~> 3.0", require: false
   gem "rubocop-performance", "~> 1.27", require: false
   gem "rubocop-rails", "~> 2.38", require: false
   gem "rubocop-rake", "~> 0.7", require: false
