@@ -51,6 +51,10 @@ jobs:
         persist-credentials: false
 
     - uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
+      # On a cache miss, RubyGems' installer warns under -W:performance (Gem::Specification shape variations,
+      # rubygems/specification.rb); only the gem install drops that category, the repository's commands keep it.
+      env:
+        RUBYOPT: -W:deprecated
       with:
         ruby-version: .ruby-version
         rubygems: latest
@@ -72,6 +76,10 @@ jobs:
         persist-credentials: false
 
     - uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
+      # On a cache miss, RubyGems' installer warns under -W:performance (Gem::Specification shape variations,
+      # rubygems/specification.rb); only the gem install drops that category, the repository's commands keep it.
+      env:
+        RUBYOPT: -W:deprecated
       with:
         ruby-version: .ruby-version
         rubygems: latest
@@ -93,6 +101,10 @@ jobs:
         persist-credentials: false
 
     - uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
+      # On a cache miss, RubyGems' installer warns under -W:performance (Gem::Specification shape variations,
+      # rubygems/specification.rb); only the gem install drops that category, the repository's commands keep it.
+      env:
+        RUBYOPT: -W:deprecated
       with:
         ruby-version: .ruby-version
         rubygems: latest
@@ -112,6 +124,10 @@ jobs:
         persist-credentials: false
 
     - uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
+      # On a cache miss, RubyGems' installer warns under -W:performance (Gem::Specification shape variations,
+      # rubygems/specification.rb); only the gem install drops that category, the repository's commands keep it.
+      env:
+        RUBYOPT: -W:deprecated
       with:
         ruby-version: .ruby-version
         rubygems: latest
@@ -131,6 +147,10 @@ jobs:
         persist-credentials: false
 
     - uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
+      # On a cache miss, RubyGems' installer warns under -W:performance (Gem::Specification shape variations,
+      # rubygems/specification.rb); only the gem install drops that category, the repository's commands keep it.
+      env:
+        RUBYOPT: -W:deprecated
       with:
         ruby-version: .ruby-version
         rubygems: latest
@@ -152,6 +172,10 @@ jobs:
         persist-credentials: false
 
     - uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
+      # On a cache miss, RubyGems' installer warns under -W:performance (Gem::Specification shape variations,
+      # rubygems/specification.rb); only the gem install drops that category, the repository's commands keep it.
+      env:
+        RUBYOPT: -W:deprecated
       with:
         ruby-version: .ruby-version
         rubygems: latest
