@@ -67,6 +67,7 @@ jobs:
     runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
+      actions: read  # download the SARIF artifact of this run
       contents: read
       security-events: write  # upload the SARIF results to code scanning
     steps:
@@ -85,9 +86,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
-        with:
-          name: scorecard-sarif
+      # Downloaded with the GitHub CLI: actions/download-artifact (v8.0.2, the newest) logs a Node.js
+      # deprecation warning (DEP0005, Buffer()) from the code it bundles.
+      - name: Download the SARIF results
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+        run: gh run download "${RUN_ID}" --name scorecard-sarif
       - name: Give repository-level findings a valid location
         # Scorecard reports findings about the whole repository (Branch-Protection, Code-Review, Fuzzing,
         # ...) under the placeholder URI "no file associated with this alert", which upload-sarif rejects
