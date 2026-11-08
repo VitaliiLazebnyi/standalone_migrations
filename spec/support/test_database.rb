@@ -1,6 +1,8 @@
 # typed: strict
 # frozen_string_literal: true
 
+# Copyright (c) 2026 Vitalii Lazebnyi
+
 require "active_record"
 require "active_record/connection_adapters/postgresql_adapter"
 require "sorbet-runtime"

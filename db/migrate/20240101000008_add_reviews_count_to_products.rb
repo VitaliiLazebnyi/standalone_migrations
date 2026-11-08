@@ -1,6 +1,8 @@
 # typed: strict
 # frozen_string_literal: true
 
+# Copyright (c) 2026 Vitalii Lazebnyi
+
 # Adds a denormalised counter-cache column to products.
 #
 # This migration uses explicit `up`/`down` (instead of `change`) to show how a

@@ -1,6 +1,8 @@
 # typed: strict
 # frozen_string_literal: true
 
+# Copyright (c) 2026 Vitalii Lazebnyi
+
 # Boots a standalone ActiveRecord environment: loads config/database.yml,
 # establishes the connection, and points the migrator at db/migrate.
 #

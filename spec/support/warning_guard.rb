@@ -1,6 +1,8 @@
 # typed: strict
 # frozen_string_literal: true
 
+# Copyright (c) 2026 Vitalii Lazebnyi
+
 require "sorbet-runtime"
 
 # Turns every Ruby warning raised from this project's own code (bin/, db/, lib/ and spec/) into a test

@@ -1,6 +1,8 @@
 # typed: strict
 # frozen_string_literal: true
 
+# Copyright (c) 2026 Vitalii Lazebnyi
+
 # Seed data for the example schema. Loaded by `db seed`.
 #
 # Idempotent: it truncates the domain tables (RESTART IDENTITY CASCADE) and

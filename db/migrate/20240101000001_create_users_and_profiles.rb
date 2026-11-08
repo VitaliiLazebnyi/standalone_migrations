@@ -1,6 +1,8 @@
 # typed: strict
 # frozen_string_literal: true
 
+# Copyright (c) 2026 Vitalii Lazebnyi
+
 # Users and their 1:1 profiles.
 #
 # Demonstrates: a unique index, and a one-to-one relationship enforced with a

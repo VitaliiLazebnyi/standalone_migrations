@@ -1,6 +1,8 @@
 # typed: strict
 # frozen_string_literal: true
 
+# Copyright (c) 2026 Vitalii Lazebnyi
+
 # Product reviews written by users.
 #
 # Demonstrates: two foreign keys on one table, a CHECK constraint, and a

@@ -1,6 +1,8 @@
 # typed: false
 # frozen_string_literal: true
 
+# Copyright (c) 2026 Vitalii Lazebnyi
+
 RSpec.describe(CLI::Commands) do
   describe ".migrate" do
     before { allow(Migrator).to(receive(:migrate)) }

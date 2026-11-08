@@ -1,6 +1,8 @@
 # typed: false
 # frozen_string_literal: true
 
+# Copyright (c) 2026 Vitalii Lazebnyi
+
 # Must come first: it has to see warnings emitted while bin/, db/, lib/ and spec/ are loaded.
 require_relative "support/warning_guard"
 

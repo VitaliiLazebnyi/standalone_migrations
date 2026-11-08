@@ -1,6 +1,8 @@
 # typed: strict
 # frozen_string_literal: true
 
+# Copyright (c) 2026 Vitalii Lazebnyi
+
 # Warehouses and per-warehouse stock levels for products.
 #
 # Demonstrates: a join table (inventories) connecting two parents (products and

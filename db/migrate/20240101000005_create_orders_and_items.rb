@@ -1,6 +1,8 @@
 # typed: strict
 # frozen_string_literal: true
 
+# Copyright (c) 2026 Vitalii Lazebnyi
+
 # Orders placed by users, and the line items within each order.
 #
 # Demonstrates: a composite index tuned for "this user's recent orders"

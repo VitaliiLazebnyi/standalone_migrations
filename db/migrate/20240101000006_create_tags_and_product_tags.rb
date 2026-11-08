@@ -1,6 +1,8 @@
 # typed: strict
 # frozen_string_literal: true
 
+# Copyright (c) 2026 Vitalii Lazebnyi
+
 # Tags and the many-to-many join between products and tags.
 #
 # Demonstrates: a classic many-to-many join table with a composite primary-key

@@ -1,6 +1,8 @@
 # typed: false
 # frozen_string_literal: true
 
+# Copyright (c) 2026 Vitalii Lazebnyi
+
 RSpec.describe(CLI) do
   describe ".run" do
     it "boots ActiveRecord first", :aggregate_failures do
