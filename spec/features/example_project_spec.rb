@@ -1,6 +1,8 @@
 # typed: false
 # frozen_string_literal: true
 
+# Copyright (c) 2026 Vitalii Lazebnyi
+
 # The example project itself: its migrations, its committed schema snapshot and its seed data.
 RSpec.describe("the example project") do
   let(:connection) { ActiveRecord::Base.connection }

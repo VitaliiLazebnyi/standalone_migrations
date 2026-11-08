@@ -1,6 +1,8 @@
 # typed: false
 # frozen_string_literal: true
 
+# Copyright (c) 2026 Vitalii Lazebnyi
+
 # bin/db as a user runs it: a separate process, against this process's test database (DATABASE_NAME is
 # inherited) and the example project's migrations.
 RSpec.describe("bin/db") do

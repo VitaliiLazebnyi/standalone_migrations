@@ -2,6 +2,8 @@
 # typed: strict
 # frozen_string_literal: true
 
+# Copyright (c) 2026 Vitalii Lazebnyi
+
 # Fails when a dependency is not at its newest release and is not on the documented hold list
 # (script/outdated_holds.yml), or when a listed hold is no longer outdated. It checks:
 #

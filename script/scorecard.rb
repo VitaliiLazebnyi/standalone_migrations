@@ -2,6 +2,8 @@
 # typed: strict
 # frozen_string_literal: true
 
+# Copyright (c) 2026 Vitalii Lazebnyi
+
 # Fails when a dependency's OpenSSF Scorecard is below THRESHOLD, unless script/scorecard_allowlist.yml
 # allows that dependency with a reason, and when an allowance is stale. It scores every gem of Gemfile.lock
 # and every GitHub Action the workflows use, through the source repository each one names.

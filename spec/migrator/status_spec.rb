@@ -1,6 +1,8 @@
 # typed: false
 # frozen_string_literal: true
 
+# Copyright (c) 2026 Vitalii Lazebnyi
+
 RSpec.describe(Migrator::Status) do
   let(:context) { Migrator.context }
 

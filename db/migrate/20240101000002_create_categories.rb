@@ -1,6 +1,8 @@
 # typed: strict
 # frozen_string_literal: true
 
+# Copyright (c) 2026 Vitalii Lazebnyi
+
 # Product categories, with a self-referential parent_id so categories can form
 # a tree (e.g. Electronics -> Phones -> Accessories).
 #

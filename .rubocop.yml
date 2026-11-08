@@ -65,10 +65,13 @@ Naming/BlockForwarding:
 Lint/ConstantResolution:
   Enabled: false
 
-# The repository has no license and no copyright notice to require: choosing one is the owner's legal
-# decision, not a lint fix.
+# Every Ruby file carries the copyright notice of LICENSE.txt (MIT). Markdown code blocks are fragments of a
+# program, not files, so they carry none.
 Style/Copyright:
-  Enabled: false
+  AutocorrectNotice: '# Copyright (c) 2026 Vitalii Lazebnyi'
+  Exclude:
+    - '**/*.md'
+  Notice: ^# Copyright \(c\) 2026 Vitalii Lazebnyi$
 
 # Requires the comment directly above `def`, but Sorbet's `sig { ... }` must sit between the two. The
 # documentation is enforced by the YARD gate instead (`rake yard`: 100% documented, no warnings).

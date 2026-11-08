@@ -1,6 +1,8 @@
 # typed: strict
 # frozen_string_literal: true
 
+# Copyright (c) 2026 Vitalii Lazebnyi
+
 # The `db` command line (bin/db): parses Rails-style KEY=value arguments and
 # dispatches to Migrator.
 

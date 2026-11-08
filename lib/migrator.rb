@@ -1,6 +1,8 @@
 # typed: strict
 # frozen_string_literal: true
 
+# Copyright (c) 2026 Vitalii Lazebnyi
+
 # The three core functions the task asks for, plus a couple of helpers used by
 # the CLI. Everything is built on ActiveRecord's real migration engine.
 #

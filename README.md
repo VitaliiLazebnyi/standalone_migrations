@@ -281,3 +281,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for running every gate locally.
 docker compose down        # stop containers, KEEP data
 docker compose down -v     # stop containers, DELETE the pgdata volume
 ```
+
+## License
+
+Released under the [MIT License](LICENSE.txt).

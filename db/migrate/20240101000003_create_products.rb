@@ -1,6 +1,8 @@
 # typed: strict
 # frozen_string_literal: true
 
+# Copyright (c) 2026 Vitalii Lazebnyi
+
 # Products belong to a category.
 #
 # Demonstrates: a COMPOSITE index ([category_id, status]) to speed up the very
