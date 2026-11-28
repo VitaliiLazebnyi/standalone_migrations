@@ -5,7 +5,7 @@
 # stages use the same base, pinned by digest (Dependabot keeps it current).
 
 # --- gems: compile the native extensions (bigdecimal, json) -------------------
-FROM ruby:4.0.9-alpine3.24@sha256:8ad6909db16ad53b5dc90bb8cc157e5fdd89ba1172798316b95cfd2a61f14b1e AS gems
+FROM ruby:4.0.9-alpine3.24@sha256:921ad0cc0f6bf76ed48ed6847a4c55a928e920bc7a2f2697aed498942c50ea00 AS gems
 
 # A C toolchain for the gems with native extensions (the pg gem ships
 # precompiled, with its own libpq, so no libpq-dev is needed), and the newest
@@ -24,7 +24,7 @@ RUN bundle install --jobs 4 --retry 3 \
     && rm -rf /usr/local/bundle/cache
 
 # --- runtime ----------------------------------------------------------------
-FROM ruby:4.0.9-alpine3.24@sha256:8ad6909db16ad53b5dc90bb8cc157e5fdd89ba1172798316b95cfd2a61f14b1e
+FROM ruby:4.0.9-alpine3.24@sha256:921ad0cc0f6bf76ed48ed6847a4c55a928e920bc7a2f2697aed498942c50ea00
 
 # psql (`db console`) and pg_isready (bin/entrypoint.sh), matching the
 # PostgreSQL 18 server of docker-compose.yml.
